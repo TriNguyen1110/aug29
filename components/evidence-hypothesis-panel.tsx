@@ -31,14 +31,14 @@ export function EvidenceHypothesisPanel({ events }: { events: IncidentEvent[] })
     : [];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-8">
       <HypothesisCard
         rootCause={String(hp.rootCause ?? "")}
         proposedFix={String(hp.proposedFix ?? "")}
         claims={hp.claims ?? []}
       />
       <div>
-        <p className="mb-2 font-mono text-xs uppercase tracking-[0.14em] text-muted">
+        <p className="mb-3 font-mono text-xs uppercase tracking-[0.14em] text-muted">
           alternatives ({alternatives.length})
         </p>
         <AlternativesPanel alternatives={alternatives} />

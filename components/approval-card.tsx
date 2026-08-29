@@ -75,8 +75,8 @@ export function ApprovalCard({
       glow={isPending ? "awaiting" : undefined}
       className={
         isPending
-          ? "flex flex-col gap-6 !border-status-awaiting p-7"
-          : "flex flex-col gap-6 p-7"
+          ? "flex flex-col gap-7 !border-status-awaiting p-7 sm:p-8"
+          : "flex flex-col gap-7 p-7 sm:p-8"
       }
     >
       <div id={`approval-${approvalId}`} className="flex flex-wrap items-center justify-between gap-2">
@@ -93,10 +93,10 @@ export function ApprovalCard({
 
       <div>
         <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">recommended action</p>
-        <p className="mt-1.5 text-lg font-semibold leading-snug tracking-[-0.01em] text-foreground">
+        <p className="mt-2 text-lg font-semibold leading-snug tracking-[-0.01em] text-foreground">
           {action}
         </p>
-        <p className="mt-1.5 font-mono text-xs text-muted">
+        <p className="mt-2 font-mono text-xs text-muted">
           {actionSpec.type} → {actionSpec.target}
           {Object.entries(actionSpec.params).length > 0 &&
             " · " + Object.entries(actionSpec.params).map(([k, v]) => `${k}=${v}`).join(" ")}
@@ -104,10 +104,10 @@ export function ApprovalCard({
       </div>
 
       <div>
-        <p className="mb-2 font-mono text-xs uppercase tracking-[0.14em] text-muted">
+        <p className="mb-3 font-mono text-xs uppercase tracking-[0.14em] text-muted">
           claims ({claims.length})
         </p>
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {claims.map((c, i) => (
             <ClaimItem key={i} claim={c} />
           ))}
@@ -115,14 +115,14 @@ export function ApprovalCard({
       </div>
 
       <div>
-        <p className="mb-2 font-mono text-xs uppercase tracking-[0.14em] text-muted">
+        <p className="mb-3 font-mono text-xs uppercase tracking-[0.14em] text-muted">
           alternatives ({alternatives.length})
         </p>
         <AlternativesPanel alternatives={alternatives} />
       </div>
 
       {isPending ? (
-        <div className="flex flex-col gap-2 border-t border-border pt-5">
+        <div className="flex flex-col gap-3 border-t border-border pt-6">
           <div className="flex gap-3">
             <Button variant="primary" size="md" disabled={busy} onClick={() => decide("approve")} className="gap-1.5">
               <Check size={15} strokeWidth={2} />

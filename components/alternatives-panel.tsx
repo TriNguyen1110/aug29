@@ -14,11 +14,11 @@ export function AlternativesPanel({ alternatives }: { alternatives: Alternative[
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-2.5">
       {alternatives.map((a, i) => (
-        <li key={i} className="rounded-xl border border-border bg-background/40 px-3.5 py-2.5 shadow-[0_4px_16px_-10px_rgba(0,0,0,0.9)]">
+        <li key={i} className="rounded-xl border border-border bg-background/40 px-4 py-3 shadow-[0_4px_16px_-10px_rgba(0,0,0,0.9)]">
           <p className="text-sm text-foreground/80">{a.description}</p>
-          <p className="mt-1 font-mono text-xs leading-relaxed text-muted">tradeoff: {a.tradeoff}</p>
+          <p className="mt-1.5 font-mono text-xs leading-relaxed text-muted">tradeoff: {a.tradeoff}</p>
         </li>
       ))}
     </ul>

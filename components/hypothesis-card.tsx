@@ -18,26 +18,26 @@ export function HypothesisCard({
   claims: Claim[];
 }) {
   return (
-    <Card glow="accent" className="flex flex-col gap-6 p-6">
+    <Card glow="accent" className="flex flex-col gap-7 p-7 sm:p-8">
       <Chip tone="active">hypothesis</Chip>
 
       <div>
         <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">root cause</p>
-        <p className="mt-1.5 text-lg font-semibold leading-snug tracking-[-0.01em] text-foreground">
+        <p className="mt-2 text-xl font-semibold leading-snug tracking-[-0.01em] text-foreground">
           {rootCause}
         </p>
       </div>
 
       <div>
         <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">proposed fix</p>
-        <p className="mt-1.5 text-sm leading-relaxed text-foreground/85">{proposedFix}</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/85">{proposedFix}</p>
       </div>
 
       <div>
-        <p className="mb-2 font-mono text-xs uppercase tracking-[0.14em] text-muted">
+        <p className="mb-3 font-mono text-xs uppercase tracking-[0.14em] text-muted">
           claims ({claims.length})
         </p>
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {claims.map((c, i) => (
             <ClaimItem key={i} claim={c} />
           ))}

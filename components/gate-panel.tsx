@@ -19,7 +19,7 @@ export function GatePanel({ events }: { events: IncidentEvent[] }) {
   if (approvals.length === 0 && clarifications.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {clarifications.map((event) => {
         const p = event.payload as { question?: string; gap?: string };
         const answer = ordered.find(

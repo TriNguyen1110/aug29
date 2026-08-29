@@ -53,8 +53,8 @@ export function ClarificationCard({
       glow={resolved ? "accent" : "awaiting"}
       className={
         resolved
-          ? "flex flex-col gap-4 p-5"
-          : "flex flex-col gap-4 !border-status-awaiting p-5"
+          ? "flex flex-col gap-5 p-7 sm:p-8"
+          : "flex flex-col gap-5 !border-status-awaiting p-7 sm:p-8"
       }
     >
       <Chip tone={resolved ? "active" : "awaiting"}>
@@ -63,21 +63,21 @@ export function ClarificationCard({
 
       <div>
         <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">agent is asking</p>
-        <p className="mt-1.5 text-base font-semibold leading-snug text-foreground">{question}</p>
+        <p className="mt-2 text-base font-semibold leading-snug text-foreground">{question}</p>
       </div>
 
       <div>
         <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">why it&apos;s stuck</p>
-        <p className="mt-1.5 text-sm leading-relaxed text-foreground/80">{gap}</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/80">{gap}</p>
       </div>
 
       {resolved ? (
-        <div className="border-t border-border pt-3.5">
+        <div className="border-t border-border pt-5">
           <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">on-call answered</p>
-          <p className="mt-1.5 text-sm text-foreground/90">{localAnswer}</p>
+          <p className="mt-2 text-sm text-foreground/90">{localAnswer}</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3 border-t border-border pt-3.5">
+        <div className="flex flex-col gap-3 border-t border-border pt-5">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

@@ -12,11 +12,11 @@ export function ClaimItem({ claim }: { claim: Claim }) {
     <li
       className={
         backed
-          ? "rounded-xl border border-border bg-surface-raised px-4 py-3.5 shadow-[0_6px_20px_-14px_rgba(0,0,0,0.9)]"
-          : "rounded-xl border border-status-blocking/50 bg-status-blocking/[0.06] px-4 py-3.5 shadow-[0_0_24px_-10px_rgba(239,68,68,0.35)]"
+          ? "rounded-xl border border-border bg-surface-raised px-5 py-4 shadow-[0_6px_20px_-14px_rgba(0,0,0,0.9)]"
+          : "rounded-xl border border-status-blocking/50 bg-status-blocking/[0.06] px-5 py-4 shadow-[0_0_24px_-10px_rgba(239,68,68,0.35)]"
       }
     >
-      <div className="mb-2 flex items-start justify-between gap-3">
+      <div className="mb-2.5 flex items-start justify-between gap-3">
         <p className="text-sm text-foreground/90">{claim.text}</p>
         {backed ? (
           <span className="shrink-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.12em] text-status-resolved">

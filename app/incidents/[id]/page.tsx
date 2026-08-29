@@ -12,8 +12,8 @@ export default async function IncidentDetail({
   const detail = await getIncidentDetail(id);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-12">
-      <div className="flex items-center justify-between gap-4">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-16 sm:py-20">
+      <div className="flex items-center justify-between gap-4 pb-10">
         <Wordmark size="sm" href="/" />
         <Link href="/" className="font-mono text-xs text-muted hover:text-foreground">
           ← all incidents

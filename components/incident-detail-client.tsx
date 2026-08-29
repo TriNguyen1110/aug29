@@ -98,25 +98,23 @@ export function IncidentDetailClient({
   }, [incident.id, isLive]);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col">
       <PendingApprovalBanner events={events} />
+
       <PageHeader eyebrow={`Incident · ${incident.id}`} title={incident.title}>
         <span className="font-mono text-xs">{incident.createdAt}</span>
       </PageHeader>
-      <div className="flex items-center gap-3">
+
+      <div className="flex items-center gap-3 pt-6">
         <StatusBadge status={status} />
         <SeededBadge incidentId={incident.id} />
-        {isLive && (
-          <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-active" />
-            live
-          </span>
-        )}
       </div>
 
-      <GatePanel events={events} />
+      <div className="pt-10">
+        <GatePanel events={events} />
+      </div>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6 pt-14">
         <Tabs
           items={[
             { key: "timeline", label: "Timeline", icon: <History size={15} strokeWidth={1.8} /> },
