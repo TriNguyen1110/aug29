@@ -1,0 +1,12 @@
+[
+  {
+    "name": "stripe_status",
+    "url": "https://status.stripe.com/",
+    "collectorId": "c_mterqfcf11gtnha5a"
+  },
+  {
+    "name": "stripe_changelog",
+    "url": "https://docs.stripe.com/changelog",
+    "collectorId": "c_mterrg4ec3sh7fph7"
+  }
+]
