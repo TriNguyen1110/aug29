@@ -78,13 +78,23 @@ either outcome is a concrete, evidence-backed answer to the question a judge alr
 ## Qodo (required for the Code Quality track)
 
 - One team member with GitHub admin installs the integration once: Qodo → Integrations → SaaS →
-  GitHub → Add installation → authorize this repo.
+  GitHub → Add installation → authorize this repo. (Done for this repo.)
 - Every non-trivial change goes through a PR, not a direct push to `main` — a direct push doesn't
   count as reviewed. Qodo auto-reviews the PR; comment `/agentic_review` if it doesn't fire.
 - Address High-severity findings before merging; dismiss anything else with a one-line reason in
   the PR thread.
 - Before submission, add a "Qodo Code Review Evidence" section to the README with a merged PR
   link and 1-2 lines on what Qodo caught and how it was addressed.
+
+**Responsibility split — two separate gates, both required before `main`:** the `verifier`
+agent's `done` verdict on BOARD.tsv is an *internal correctness* gate (DATA/SCREEN checks,
+grounding, journeys) — it has nothing to do with Qodo and doesn't open or read PRs itself.
+**Qodo review is a separate, additional gate**, main-session's job: push the feature branch, open
+the PR, wait for/trigger Qodo (`gh pr comment <PR> --body "/agentic_review"` if it doesn't fire on
+its own), read its findings (`gh api` or `gh pr view --comments`), address High-severity ones
+(dispatch the owning builder with the specific finding, same as a verifier kickback) or dismiss
+others with a one-line reason, *then* merge to `main`. Both gates must pass — verifier `done` is
+necessary but not sufficient for merge.
 
 ## Commands
 
