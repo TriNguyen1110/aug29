@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, X } from "lucide-react";
 import type { ActionSpec, Alternative, Claim } from "@/lib/types";
 import { Card } from "@/components/ui/card";
@@ -38,6 +38,17 @@ export function ApprovalCard({
   const [localStatus, setLocalStatus] = useState<Status>(status);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Bug (c) fix (item 12): this card's initial `useState(status)` only captured the status
+  // at mount time. If another tab/API client resolves the approval, GatePanel re-derives a
+  // new `status` prop from the streamed approval_granted/denied event, but without this sync
+  // the card kept rendering its stale mount-time "pending" — clickable, and clicking it then
+  // 409s against an approval already resolved server-side. Re-sync whenever the prop changes,
+  // but don't clobber an in-flight optimistic update: if this tab is mid-click and already
+  // knows the outcome (or is busy), the prop catching up to the same value is a no-op anyway.
+  useEffect(() => {
+    setLocalStatus(status);
+  }, [status]);
 
   const isPending = localStatus === "pending";
 

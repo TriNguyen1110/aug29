@@ -37,7 +37,20 @@ function deriveStatus(events: IncidentEvent[], fallback: Incident["status"]): In
     (e) => !resolvedApprovalIds.has((e.payload as { approvalId?: string }).approvalId),
   );
 
-  if (events.some((e) => e.type === "summary_posted")) return "resolved";
+  // Bug (a) fix (item 12): lib/harness.ts's catch-all failure path also emits
+  // summary_posted (to fail loudly into the log per CLAUDE.md's conventions) without ever
+  // calling updateIncidentStatus(..., "resolved") or emitting action_executed — a genuine
+  // resolution always emits action_executed immediately before its summary_posted, a failed
+  // run never does. CONTRACT.md's summary_posted payload is just { channel, text } with no
+  // explicit outcome flag, so this checks event-type sequence instead of parsing the (fragile,
+  // backend-internal) text prefix. Flagged as a fact row: an explicit `outcome` field on
+  // summary_posted's payload would make this a one-line check instead of an inferred sequence.
+  if (
+    events.some((e) => e.type === "action_executed") &&
+    events.some((e) => e.type === "summary_posted")
+  ) {
+    return "resolved";
+  }
   if (events.some((e) => e.type === "approval_granted")) return "remediating";
   if (hasPendingApproval) return "awaiting_approval";
   return "investigating";
@@ -53,7 +66,13 @@ export function IncidentDetailClient({
   const [events, setEvents] = useState<IncidentEvent[]>(initialEvents);
   const [tab, setTab] = useState<"timeline" | "evidence">("timeline");
 
-  const isLive = incident.status !== "resolved";
+  // Bug (b) fix (item 12): status must be derived from the live/merged event stream, not
+  // just the server-supplied prop from page load — otherwise a page opened while
+  // investigating never notices the incident actually resolved, keeps showing "live", and
+  // never closes its EventSource. deriveStatus(events, incident.status) falls back to the
+  // initial prop only when there are no events yet to derive from.
+  const status = useMemo(() => deriveStatus(events, incident.status), [events, incident.status]);
+  const isLive = status !== "resolved";
 
   useEffect(() => {
     if (!isLive) return;
@@ -73,13 +92,10 @@ export function IncidentDetailClient({
     };
 
     return () => source.close();
-    // incident.id/isLive don't change for a mounted detail page — this connects once.
+    // isLive now flips to false once the derived status reaches "resolved" (see above),
+    // so this cleanup genuinely closes the connection on real resolution, not just on
+    // unmount — that's the fix for bug (b), not a no-op comment.
   }, [incident.id, isLive]);
-
-  const status = useMemo(
-    () => (isLive ? deriveStatus(events, incident.status) : incident.status),
-    [events, incident.status, isLive],
-  );
 
   return (
     <div className="flex flex-col gap-8">
