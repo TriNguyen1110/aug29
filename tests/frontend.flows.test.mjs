@@ -1,0 +1,103 @@
+// Verifier-owned. SCREEN-scope standing tests for frontend flows that have reached
+// `review`/`done` on BOARD.tsv. Run against the already-running dev server (npm run dev,
+// port 3000) — this file never starts its own server. Run with:
+//   node --test tests/frontend.flows.test.mjs
+//
+// Uses a headless Playwright browser (devDependency, not persisted to package.json) to
+// render the actual pages and assert on real DOM content + absence of console/page errors,
+// not just HTTP status — a route can 200 and still render an error boundary or empty state.
+
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { chromium } from "playwright";
+
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
+
+let browser;
+
+before(async () => {
+  browser = await chromium.launch();
+});
+
+after(async () => {
+  await browser.close();
+});
+
+async function visit(path, viewport = { width: 1440, height: 900 }) {
+  const page = await browser.newPage({ viewport });
+  const consoleErrors = [];
+  const pageErrors = [];
+  const failedRequests = [];
+  page.on("console", (msg) => {
+    if (msg.type() === "error") consoleErrors.push(msg.text());
+  });
+  page.on("pageerror", (err) => pageErrors.push(String(err)));
+  page.on("response", (res) => {
+    if (res.status() >= 400) failedRequests.push(`${res.status()} ${res.url()}`);
+  });
+  const response = await page.goto(`${BASE_URL}${path}`, {
+    waitUntil: "networkidle",
+    timeout: 15000,
+  });
+  const bodyText = await page.evaluate(() => document.body.innerText);
+  return { page, response, consoleErrors, pageErrors, failedRequests, bodyText };
+}
+
+test("incident list (/) renders real seeded incidents, no errors, desktop", async () => {
+  const { page, response, consoleErrors, pageErrors, failedRequests, bodyText } =
+    await visit("/");
+  assert.equal(response.status(), 200);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(failedRequests, []);
+  assert.match(bodyText, /Auth service 500 spike after deploy/);
+  assert.match(bodyText, /Image upload latency regression/);
+  assert.match(bodyText, /inc_auth500/);
+  assert.match(bodyText, /inc_imgupload/);
+  await page.close();
+});
+
+test("incident list (/) renders on a narrow/mobile viewport with no errors", async () => {
+  const { page, response, consoleErrors, pageErrors, failedRequests, bodyText } = await visit(
+    "/",
+    { width: 390, height: 844 },
+  );
+  assert.equal(response.status(), 200);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(failedRequests, []);
+  assert.match(bodyText, /Auth service 500 spike after deploy/);
+  await page.close();
+});
+
+test("incident detail (/incidents/inc_auth500) renders live timeline from real API, desktop", async () => {
+  const { page, response, consoleErrors, pageErrors, failedRequests, bodyText } = await visit(
+    "/incidents/inc_auth500",
+  );
+  assert.equal(response.status(), 200);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(failedRequests, []);
+  // Real event content from the seeded run, not an empty state or error boundary.
+  assert.match(bodyText, /SUBAGENT_START/);
+  assert.match(bodyText, /TOOL_CALL/);
+  assert.match(bodyText, /HYPOTHESIS/);
+  assert.match(bodyText, /APPROVAL_REQUESTED/);
+  assert.match(bodyText, /ACTION_EXECUTED/);
+  assert.doesNotMatch(bodyText, /Incident not found/);
+  await page.close();
+});
+
+test("incident detail (/incidents/inc_imgupload) renders clarification round-trip, mobile", async () => {
+  const { page, response, consoleErrors, pageErrors, failedRequests, bodyText } = await visit(
+    "/incidents/inc_imgupload",
+    { width: 390, height: 844 },
+  );
+  assert.equal(response.status(), 200);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(pageErrors, []);
+  assert.deepEqual(failedRequests, []);
+  assert.match(bodyText, /CLARIFICATION_REQUESTED/);
+  assert.match(bodyText, /CLARIFICATION_PROVIDED/);
+  await page.close();
+});
