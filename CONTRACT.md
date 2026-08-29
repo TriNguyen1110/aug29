@@ -171,6 +171,14 @@ Backend seeds two past `Incident` rows (status `resolved`) with a full event his
 Frontend builds the incident list and detail view against these from the start — never blocks
 waiting for a real harness run to exist.
 
+**The live-triggered demo incident is "Checkout API error rate spike."** This is the scenario
+that makes the `external` subagent's Bright Data targets (see CLAUDE.md's "Bright Data" section
+— Stripe status + Stripe API changelog) land for a judge instantly: the first thing anyone
+on-call asks about a checkout error spike is "is this us, or is Stripe down?" The demo should let
+that subagent answer it live with a real scraped page as the receipt, not an assertion — either
+a live Stripe incident becomes the evidence-backed root cause, or a clean Stripe status honestly
+rules it out and the hypothesis has to explain an internal cause instead (rule 5).
+
 ## Fallback table
 
 | Blocked on | Take this instead |

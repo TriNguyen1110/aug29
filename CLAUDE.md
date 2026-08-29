@@ -44,6 +44,23 @@ whole demo.
 
 Real setup, not simulated — this is a judged criterion on its own track.
 
+**Watch targets (external-evidence subagent), fixed for this build:**
+
+The seeded demo incident is *"Checkout API error rate spike"* — the highest-stakes, most
+instantly-relatable question that scenario raises is "is this us, or is Stripe down?" Both
+targets below answer exactly that question live, on stage, with a real scraped page as the
+receipt, instead of the agent just asserting an answer:
+
+| Target | URL | Why |
+|---|---|---|
+| Stripe status | `https://status.stripe.com/` | The direct "is it them or us" check for a checkout incident — a judge gets the stakes in one sentence. If it shows a live incident, that's the root cause, evidence-backed. If it's clean, that's equally valuable: it rules out the easy excuse and forces the hypothesis to actually explain an internal cause (ties into rule 5 — ask instead of assuming). |
+| Stripe API changelog | `https://docs.stripe.com/changelog` | Sharper than a generic dependency-release page: if Stripe shipped an API/behavior change today, that's a concrete, checkable candidate cause for a checkout-specific error spike, not just "some upstream release happened." |
+
+Demo script this enables: trigger the checkout incident → watch the `external` subagent scrape
+both pages live → the hypothesis either cites the Stripe incident/changelog entry verbatim as
+the root cause, or explicitly states neither shows anything and the cause must be internal —
+either outcome is a concrete, evidence-backed answer to the question a judge already understands.
+
 - CLI: `npx -p @brightdata/cli`, `bdata login` once to connect the terminal to the account.
 - Create the external-evidence scraper once, keep its Collector ID (`c_*`) as a `fact` row:
   `bdata scraper create <status-page-or-changelog-URL> "<what to extract, e.g. latest incident/deploy entries>"`.
