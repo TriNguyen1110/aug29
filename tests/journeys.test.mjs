@@ -115,10 +115,16 @@ test("on-call journey: trigger checkout_error_spike, read the evidence-backed hy
   const bannerText = await page.locator("text=awaiting your decision").first().innerText();
   assert.match(bannerText, /approval/i);
 
+  // RECOMMENDED ACTION / ALTERNATIVES CONSIDERED live on the always-visible ApprovalCard
+  // (item 04/05: never hidden behind a tab). ROOT CAUSE lives on HypothesisCard inside the
+  // "Evidence & Hypothesis" tab (item 05's tab split) — click it before asserting.
+  const bodyTextBeforeTab = await page.evaluate(() => document.body.innerText);
+  assert.match(bodyTextBeforeTab, /RECOMMENDED ACTION/);
+  // item 08 trimmed "alternatives considered (N)" -> "alternatives (N)".
+  assert.match(bodyTextBeforeTab, /ALTERNATIVES \(\d+\)/);
+  await page.click('text="Evidence & Hypothesis"');
   const bodyText = await page.evaluate(() => document.body.innerText);
   assert.match(bodyText, /ROOT CAUSE/);
-  assert.match(bodyText, /RECOMMENDED ACTION/);
-  assert.match(bodyText, /ALTERNATIVES CONSIDERED/);
   // Every claim the API said was unbacked must be visibly flagged as such on screen, not
   // silently dropped or styled the same as a backed one — the entire pitch per CONTRACT.md.
   const hasUnbackedClaim = claims.some((c) => c.evidence.length === 0);

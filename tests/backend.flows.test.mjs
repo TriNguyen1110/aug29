@@ -4,6 +4,11 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
@@ -145,23 +150,6 @@ async function pollUntil(id, predicate, { timeoutMs = 45000, intervalMs = 1000 }
 // resulting claims is a real, verbatim substring of the fixed simulated tool output the harness
 // is grounded against (lib/simTools.ts), per CONTRACT.md's core grounding rule.
 test("POST /api/incidents/trigger starts a real run that blocks on approval, then executes only the approved spec, with grounded evidence", async () => {
-  const LOG_QUERY_OUTPUT =
-    "14:58:00-15:04:00 checkout-service p95_latency=180ms error_rate=0.3% (baseline).\n" +
-    "15:04:10 checkout-service ERROR rate step-changes to 38% (baseline 0.3%).\n" +
-    "15:04:12 checkout-service ERROR 847 requests failed with 502: StripeConnectionError: " +
-    "\"Request failed: socket hang up\" at PaymentIntentClient.confirm (payment_intent_client.ts:112)\n" +
-    "15:04:12 checkout-service ERROR retry_exhausted=true retries=3 backoff_ms=[200,400,800]\n" +
-    "15:09:00 checkout-service ERROR rate holding steady at 37-39%, all failures the same " +
-    "StripeConnectionError at PaymentIntentClient.confirm.";
-  const GIT_LOG_OUTPUT =
-    "d4e5f6a 2026-08-29T15:02:47Z deploy-bot \"Bump stripe-node 14.8.0 -> 17.0.0, switch " +
-    "PaymentIntentClient.confirm to the new idempotent-retry helper\"";
-  const GIT_SHOW_OUTPUT =
-    "- const stripe = new Stripe(key, { apiVersion: '2023-10-16', timeout: 20000, maxNetworkRetries: 3 });\n" +
-    "+ const stripe = new Stripe(key, { apiVersion: '2023-10-16', timeout: 3000, maxNetworkRetries: 3 });\n" +
-    "  // stripe-node 17 default socket timeout is shorter; not re-tuned after the bump";
-  const GROUNDABLE_SOURCES = [LOG_QUERY_OUTPUT, GIT_LOG_OUTPUT + "\n" + GIT_SHOW_OUTPUT];
-
   const trigger = await fetch(`${BASE_URL}/api/incidents/trigger`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -195,8 +183,16 @@ test("POST /api/incidents/trigger starts a real run that blocks on approval, the
   }
 
   // The core grounding rule: every non-empty Evidence.excerpt on every claim must be a literal
-  // substring of the real simulated tool output it claims to come from. Anything that failed
-  // this check in code should already have been dropped to evidence: [] before reaching here.
+  // substring of the real tool output it claims to come from. logs/diff tool output is fixed
+  // (lib/simTools.ts); external tool output is real, live Bright Data scrape content (item 06)
+  // and therefore NOT a fixed string worth hardcoding here — instead ground against this run's
+  // own real tool_call outputs, captured live, same rigor either way. Anything that failed this
+  // check in code should already have been dropped to evidence: [] before reaching here.
+  const realToolOutputs = atGate.events
+    .filter((e) => e.type === "tool_call")
+    .map((e) => String(e.payload.output ?? ""));
+  assert.ok(realToolOutputs.length > 0, "must have real tool_call output to ground evidence against");
+
   assert.ok(Array.isArray(claims) && claims.length > 0);
   let sawAnyEvidence = false;
   for (const claim of claims) {
@@ -204,8 +200,8 @@ test("POST /api/incidents/trigger starts a real run that blocks on approval, the
       sawAnyEvidence = true;
       assert.ok(ev.source && ev.ref && typeof ev.excerpt === "string" && ev.excerpt.length > 0);
       assert.ok(
-        GROUNDABLE_SOURCES.some((src) => src.includes(ev.excerpt)),
-        `evidence excerpt is not a verbatim substring of real tool output: ${JSON.stringify(ev)}`,
+        realToolOutputs.some((src) => src.includes(ev.excerpt)),
+        `evidence excerpt is not a verbatim substring of this run's real tool_call output: ${JSON.stringify(ev)}`,
       );
     }
   }
@@ -238,4 +234,93 @@ test("POST /api/incidents/trigger starts a real run that blocks on approval, the
     actionSpec,
     "executor must run the actionSpec verbatim as approved on the Approval record",
   );
+});
+
+// Item 06 (DATA): the Bright Data target swap off KYC-blocked Stripe status/changelog. Confirms
+// (a) data/targets.json config itself no longer names the blocked Stripe targets and instead has
+// the two new ones (github_status, stripe_node_releases pointed at the .atom feed, not the plain
+// HTML releases page which fell into Bright Data's slow batch-mode fallback per BOARD.tsv fact
+// row H+1.55), and (b) a real live-triggered run's `external` subagent tool_call events actually
+// reference those new Collector IDs and URLs — not a config file nobody reads at runtime.
+test("data/targets.json + a live run use the new non-Stripe Bright Data targets, not the old KYC-blocked ones", async () => {
+  const targets = JSON.parse(readFileSync(join(__dirname, "..", "data", "targets.json"), "utf8"));
+  assert.ok(Array.isArray(targets) && targets.length === 2, "expect exactly the 2 new targets");
+
+  const byName = Object.fromEntries(targets.map((t) => [t.name, t]));
+  assert.ok(byName.github_status, "github_status target must exist");
+  assert.ok(byName.stripe_node_releases, "stripe_node_releases target must exist");
+
+  // Old, KYC-blocked targets must be gone.
+  const urls = targets.map((t) => t.url);
+  assert.ok(!urls.some((u) => u.includes("status.stripe.com")), "old status.stripe.com target must be removed");
+  assert.ok(!urls.some((u) => u.includes("docs.stripe.com")), "old docs.stripe.com changelog target must be removed");
+
+  // stripe_node_releases must point at the .atom feed, not the plain HTML releases page (that
+  // fell into Bright Data's slow batch-mode pagination fallback and never returned, per
+  // BOARD.tsv fact row H+1.55).
+  assert.ok(
+    byName.stripe_node_releases.url.endsWith(".atom"),
+    `stripe_node_releases must target the .atom feed, got ${byName.stripe_node_releases.url}`,
+  );
+  assert.ok(
+    byName.stripe_node_releases.url.includes("github.com/stripe/stripe-node/releases"),
+    "stripe_node_releases must be the stripe-node releases feed",
+  );
+  assert.ok(byName.github_status.url.includes("githubstatus.com"), "github_status must target githubstatus.com");
+  for (const t of targets) {
+    assert.equal(typeof t.collectorId, "string");
+    assert.ok(t.collectorId.startsWith("c_"), `collectorId must be a real Bright Data collector id, got ${t.collectorId}`);
+  }
+
+  // Now prove it's not just config that nobody reads: trigger a real run and confirm the
+  // external subagent's real tool_call events cite these exact collector ids + urls.
+  const trigger = await fetch(`${BASE_URL}/api/incidents/trigger`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ scenario: "Checkout API error rate spike" }),
+  });
+  assert.equal(trigger.status, 200);
+  const { incidentId } = await trigger.json();
+
+  // The external subagent runs after logs+diff; give it room but bound it, same 45s budget as
+  // the other live-trigger test above.
+  const atGateOrDone = await pollUntil(
+    incidentId,
+    (d) => ["awaiting_approval", "resolved"].includes(d.incident.status) ||
+      d.events.some((e) => e.type === "scrape_issue" && e.payload.agent !== undefined) ||
+      d.events.filter((e) => e.type === "tool_call" && e.payload.agent === "external").length >= 2,
+    { timeoutMs: 45000 },
+  );
+
+  const externalToolCalls = atGateOrDone.events.filter((e) => e.type === "tool_call" && e.payload.agent === "external");
+  const externalScrapeIssues = atGateOrDone.events.filter((e) => e.type === "scrape_issue");
+
+  assert.ok(
+    externalToolCalls.length > 0 || externalScrapeIssues.length > 0,
+    "external subagent must have attempted at least one real Bright Data scrape (tool_call) or honestly reported scrape_issue",
+  );
+
+  const knownCollectorIds = targets.map((t) => t.collectorId);
+  const knownUrls = targets.map((t) => t.url);
+  const oldStripeCollectorIds = ["c_mterqfcf11gtnha5a", "c_mterrg4ec3sh7fph7"]; // superseded per BOARD.tsv H+1.55/H+0.77
+
+  for (const call of externalToolCalls) {
+    const input = String(call.payload.input ?? "");
+    assert.ok(
+      knownCollectorIds.some((id) => input.includes(id)) && knownUrls.some((u) => input.includes(u)),
+      `external tool_call input must reference one of the new collector ids/urls, got: ${input}`,
+    );
+    for (const oldId of oldStripeCollectorIds) {
+      assert.ok(!input.includes(oldId), `external tool_call must not reference the old KYC-blocked collector ${oldId}`);
+    }
+    assert.ok(!input.includes("status.stripe.com"), "external tool_call must not scrape the old KYC-blocked status.stripe.com");
+    assert.ok(!input.includes("docs.stripe.com"), "external tool_call must not scrape the old KYC-blocked docs.stripe.com");
+  }
+
+  for (const issue of externalScrapeIssues) {
+    const targetUrl = String(issue.payload.targetUrl ?? "");
+    if (targetUrl) {
+      assert.ok(knownUrls.includes(targetUrl), `scrape_issue targetUrl must be one of the new targets, got: ${targetUrl}`);
+    }
+  }
 });
