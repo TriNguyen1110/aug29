@@ -27,5 +27,15 @@ build this. Key one-time setup:
 
 ## Qodo Code Review Evidence
 
-<!-- Fill in before submission: link to a merged PR Qodo reviewed, and 1-2 lines on what it
-caught and how it was addressed. -->
+Qodo auto-reviewed [PR #1](https://github.com/TriNguyen1110/aug29/pull/1) (the branch that added
+the real harness run, approval gate, and evidence UI) and found 7 real bugs plus 6 rule
+violations against a full-codebase read, not just the diff. Highlights actually addressed before
+merge: the trigger's `scenario` text was being ignored by every subagent (always investigated the
+fixed checkout/Stripe fixture regardless of input); `groundEvidence` accepted a claim's excerpt if
+it matched *any* source text, without checking it actually came from the claimed `source`/`ref`
+(a real hole in the evidence-per-claim guarantee); a failed run's `summary_posted` event was being
+read by the UI as "resolved"; and a `tool_call` audit event truncated scraped content to 4,000
+characters while synthesis/grounding read up to the full raw text, so a claim could cite content
+invisible in the persisted log. Lower-severity findings (a caching-layer rule for a new polling
+GET, unknown-event-type rendering robustness) were dismissed as out of scope for a one-day
+hackathon build per `CLAUDE.md`'s own no-premature-infra convention.
