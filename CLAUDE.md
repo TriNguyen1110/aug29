@@ -88,9 +88,16 @@ either outcome is a concrete, evidence-backed answer to the question a judge alr
 
 ## Commands
 
-<!-- fill in once the repo has real scripts: dev, seed, smoke -->
-- `npm run dev` — starts both, or document if backend/frontend run separately.
-- `npm run seed` — writes the two seeded past incidents from CONTRACT.md.
+One Next.js app (App Router, already scaffolded) serves both the console (`app/**`) and the
+backend API routes (`app/api/**`) — one process, fixed port 3000, matching the "one process, no
+separate DB service" stack rule. Only the main session starts `npm run dev`; agents never launch
+their own.
+
+- `npm run dev` — starts the app on port 3000. Main session only.
+- `npm run build` — production build, used as the quick sanity/smoke check until a real
+  `npm run smoke` script exists (backend agent should add one once there's a seed/API to check).
+- `npm run seed` — <!-- backend agent: add this, writes the two seeded past incidents from
+  CONTRACT.md -->
 - `bdata scraper run <COLLECTOR_ID> <URL>` — one external-evidence scrape pass (see Bright Data
   section above); backend calls this for the third subagent, `scrape-doctor` calls it to
   re-check after a heal.
