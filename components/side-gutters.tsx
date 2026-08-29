@@ -22,6 +22,10 @@
 //  - Very low opacity (0.05, extra-faint vs. Waves' own 0.06 since it's a secondary/gutter-only
 //    accent, not the primary background) so it never competes with foreground text, per the
 //    same bar every visual addition in this build has been held to.
+//  - Item 17 (BOARD.tsv): the center used to mask to fully `transparent` (0 opacity) under the
+//    content column. Changed to a low-but-nonzero alpha so a faint hint of the animation bleeds
+//    through the middle too, instead of a hard opaque cutout — still well below the gutter's own
+//    already-faint 0.05 canvas opacity, so text contrast is unaffected.
 //  - Left unmounted entirely on the incident detail page (item 13, concurrent frontend work) —
 //    this item's note scopes the fix to "the list page."
 
@@ -55,9 +59,9 @@ export function SideGutters() {
       className="pointer-events-none fixed inset-0 -z-10 opacity-[0.05]"
       style={{
         maskImage:
-          "linear-gradient(to right, black 0%, black 15%, transparent 32%, transparent 68%, black 85%, black 100%)",
+          "linear-gradient(to right, black 0%, black 15%, rgba(0,0,0,0.35) 32%, rgba(0,0,0,0.35) 68%, black 85%, black 100%)",
         WebkitMaskImage:
-          "linear-gradient(to right, black 0%, black 15%, transparent 32%, transparent 68%, black 85%, black 100%)",
+          "linear-gradient(to right, black 0%, black 15%, rgba(0,0,0,0.35) 32%, rgba(0,0,0,0.35) 68%, black 85%, black 100%)",
       }}
     >
       <MeshDriftBackground className="h-full w-full" />
