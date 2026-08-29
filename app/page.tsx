@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
 import { IncidentList } from "@/components/incident-list";
-import { TriggerForm } from "@/components/trigger-form";
+import { TriggerForm, TriggerProvenanceNote } from "@/components/trigger-form";
 import { ValueProps } from "@/components/value-props";
 import { SideGutters } from "@/components/side-gutters";
 import { getIncidents } from "@/app/lib/api";
@@ -51,6 +51,8 @@ export default async function Home() {
       </div>
       <div className="pt-14">
         <TriggerForm />
+        {/* Item 22: small illustrative caption, subordinate to the real form above it. */}
+        <TriggerProvenanceNote />
       </div>
       <div className="pt-16">
         <IncidentList incidents={incidents} />
