@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
+/* Dev-console dark palette — near-black bg, one neutral accent (indigo) for actions,
+   color reserved for incident status only. No warm brand tokens, no glow shadows. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0c;
+  --surface: #141416;
+  --surface-raised: #191a1d;
+  --foreground: #e6e6e8;
+  --muted: #8a8a90;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --accent: #5865f2;
+  --accent-foreground: #ffffff;
+
+  --status-resolved: #22c55e;
+  --status-awaiting: #f59e0b;
+  --status-blocking: #ef4444;
+  --status-active: #5865f2;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-status-resolved: var(--status-resolved);
+  --color-status-awaiting: var(--status-awaiting);
+  --color-status-blocking: var(--status-blocking);
+  --color-status-active: var(--status-active);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
