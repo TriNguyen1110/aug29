@@ -16,10 +16,10 @@ approve or deny — not a wall of logs to read at 3am."
 
 Switch to the GitHub repo tab.
 
-"It runs on TrueForge, the real harness — three subagents in parallel, and an approval gate
-that's TrueForge's own mechanism, verified independently, not something we faked. OpenAI does
-the reasoning. Qodo reviewed this exact PR before it shipped, and caught a real security gap,
-which we fixed."
+"It runs on TrueForge, the real harness — three subagents run as real TrueForge sessions, and
+when it's time to act, TrueForge itself pauses that exact tool call and waits for me. That
+pause is verified independently, not something we faked. OpenAI does the reasoning. Qodo
+reviewed this exact PR before it shipped, and caught a real security gap, which we fixed."
 
 ## 3. Demo (0:50–2:30)
 
