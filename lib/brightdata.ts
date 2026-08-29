@@ -50,22 +50,36 @@ export async function scrapeTarget(target: ScrapeTarget): Promise<ScrapeResult> 
   const cachePath = join(rawDir, `${target.collectorId}_${Date.now()}.txt`);
   writeFileSync(cachePath, combined || "(empty response)", "utf8");
 
-  if (code !== 0) {
-    const lower = combined.toLowerCase();
-    let cause: "selector_drift" | "bot_wall" | "rate_limit" | "network" | "unknown";
-    if (lower.includes("rate limit") || lower.includes("429")) cause = "rate_limit";
-    else if (
+  // Classify error/blocking signatures regardless of exit code — bdata has been observed
+  // to exit 0 while stdout is itself an error/compliance-block body (e.g. the real KYC
+  // block hit in this project: "Crawler error: Forbidden: target site requires special
+  // permission... complete a KYC process"), which is long enough to clear
+  // MIN_HEALTHY_LENGTH and would otherwise be misclassified as a real, healthy scrape.
+  const lower = combined.toLowerCase();
+  const errorCause = ((): "selector_drift" | "bot_wall" | "rate_limit" | "network" | "unknown" | null => {
+    if (lower.includes("rate limit") || lower.includes("429")) return "rate_limit";
+    if (
       lower.includes("captcha") ||
       lower.includes("blocked") ||
       lower.includes("bot") ||
       lower.includes("forbidden") ||
       lower.includes("compliance") ||
-      lower.includes("kyc")
+      lower.includes("kyc") ||
+      lower.includes("crawler error")
     )
-      cause = "bot_wall";
-    else if (lower.includes("timeout") || lower.includes("network") || lower.includes("econn")) cause = "network";
-    else cause = "unknown";
-    return { ok: false, cause, note: combined.slice(0, 500) || `bdata exited with code ${code}, no output`, cachePath };
+      return "bot_wall";
+    if (lower.includes("timeout") || lower.includes("network") || lower.includes("econn")) return "network";
+    if (code !== 0) return "unknown";
+    return null;
+  })();
+
+  if (errorCause) {
+    return {
+      ok: false,
+      cause: errorCause,
+      note: combined.slice(0, 500) || `bdata exited with code ${code}, no output`,
+      cachePath,
+    };
   }
 
   if (stdout.trim().length < MIN_HEALTHY_LENGTH) {

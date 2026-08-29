@@ -79,10 +79,15 @@ test("incident detail (/incidents/inc_auth500) renders live timeline from real A
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(failedRequests, []);
   // Real event content from the seeded run, not an empty state or error boundary.
+  // hypothesis/approval_requested render as dedicated cards (item 04), not generic
+  // uppercase-event-type chips — assert on the real card content instead.
   assert.match(bodyText, /SUBAGENT_START/);
   assert.match(bodyText, /TOOL_CALL/);
-  assert.match(bodyText, /HYPOTHESIS/);
-  assert.match(bodyText, /APPROVAL_REQUESTED/);
+  assert.match(bodyText, /ROOT CAUSE/); // HypothesisCard label
+  assert.match(bodyText, /SessionValidator/); // real seeded hypothesis rootCause text
+  assert.match(bodyText, /RECOMMENDED ACTION/); // ApprovalCard label
+  assert.match(bodyText, /Roll back commit a1b2c3d on auth-service/); // real seeded approval action
+  assert.match(bodyText, /ALTERNATIVES CONSIDERED/); // AlternativesPanel, inline not behind a click
   assert.match(bodyText, /ACTION_EXECUTED/);
   assert.doesNotMatch(bodyText, /Incident not found/);
   await page.close();
@@ -97,7 +102,11 @@ test("incident detail (/incidents/inc_imgupload) renders clarification round-tri
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(failedRequests, []);
-  assert.match(bodyText, /CLARIFICATION_REQUESTED/);
-  assert.match(bodyText, /CLARIFICATION_PROVIDED/);
+  // clarification_requested/provided fold into ClarificationCard (item 04), not
+  // generic uppercase-event-type chips — assert on the real dedicated-card content.
+  assert.match(bodyText, /CLARIFICATION RESOLVED/); // ClarificationCard, answered state
+  assert.match(bodyText, /AGENT IS ASKING/);
+  assert.match(bodyText, /ON-CALL ANSWERED/);
+  assert.match(bodyText, /nightly thumbnail-regeneration batch job/); // real seeded answer text
   await page.close();
 });
