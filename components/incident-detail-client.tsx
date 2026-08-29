@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { History, FlaskConical } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-badge";
@@ -81,7 +82,7 @@ export function IncidentDetailClient({
   );
 
   return (
-    <>
+    <div className="flex flex-col gap-8">
       <PendingApprovalBanner events={events} />
       <PageHeader eyebrow={`Incident · ${incident.id}`} title={incident.title}>
         <span className="font-mono text-xs">{incident.createdAt}</span>
@@ -99,20 +100,26 @@ export function IncidentDetailClient({
 
       <GatePanel events={events} />
 
-      <Tabs
-        items={[
-          { key: "timeline", label: "Timeline" },
-          { key: "evidence", label: "Evidence & Hypothesis" },
-        ]}
-        value={tab}
-        onChange={(k) => setTab(k as "timeline" | "evidence")}
-      />
+      <div className="flex flex-col gap-5">
+        <Tabs
+          items={[
+            { key: "timeline", label: "Timeline", icon: <History size={15} strokeWidth={1.8} /> },
+            {
+              key: "evidence",
+              label: "Evidence & Hypothesis",
+              icon: <FlaskConical size={15} strokeWidth={1.8} />,
+            },
+          ]}
+          value={tab}
+          onChange={(k) => setTab(k as "timeline" | "evidence")}
+        />
 
-      {tab === "timeline" ? (
-        <EventTimeline events={events} />
-      ) : (
-        <EvidenceHypothesisPanel events={events} />
-      )}
-    </>
+        {tab === "timeline" ? (
+          <EventTimeline events={events} />
+        ) : (
+          <EvidenceHypothesisPanel events={events} />
+        )}
+      </div>
+    </div>
   );
 }

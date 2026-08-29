@@ -39,7 +39,7 @@ export function EvidenceHypothesisPanel({ events }: { events: IncidentEvent[] })
       />
       <div>
         <p className="mb-2 font-mono text-xs uppercase tracking-[0.14em] text-muted">
-          alternatives considered ({alternatives.length})
+          alternatives ({alternatives.length})
         </p>
         <AlternativesPanel alternatives={alternatives} />
       </div>

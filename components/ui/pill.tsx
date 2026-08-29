@@ -14,10 +14,12 @@ const DOTS: Record<Dot, string> = {
 
 export function Pill({
   dot,
+  icon,
   className = "",
   children,
 }: {
   dot?: Dot;
+  icon?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -25,7 +27,7 @@ export function Pill({
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-raised px-3 py-1 text-xs text-foreground/70 ${className}`}
     >
-      {dot && <span className={`h-1.5 w-1.5 rounded-full ${DOTS[dot]}`} />}
+      {icon ?? (dot && <span className={`h-1.5 w-1.5 rounded-full ${DOTS[dot]}`} />)}
       {children}
     </span>
   );

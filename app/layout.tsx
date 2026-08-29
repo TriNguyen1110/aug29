@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Incident Responder",
+  title: "Snitch",
   description: "Evidence-per-claim incident response console",
 };
 

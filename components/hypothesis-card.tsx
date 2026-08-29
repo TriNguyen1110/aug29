@@ -18,7 +18,7 @@ export function HypothesisCard({
   claims: Claim[];
 }) {
   return (
-    <Card glow="accent" className="flex flex-col gap-5 p-5">
+    <Card glow="accent" className="flex flex-col gap-6 p-6">
       <Chip tone="active">hypothesis</Chip>
 
       <div>

@@ -1,4 +1,4 @@
-# Demo script — Incident Responder
+# Demo script — Snitch
 
 ~4 minutes. Two branches depending on whether Bright Data's KYC is cleared by demo time — both
 are real outcomes, don't fake either one.

@@ -80,16 +80,28 @@ test("incident detail (/incidents/inc_auth500) renders live timeline from real A
   assert.deepEqual(failedRequests, []);
   // Real event content from the seeded run, not an empty state or error boundary.
   // hypothesis/approval_requested render as dedicated cards (item 04), not generic
-  // uppercase-event-type chips — assert on the real card content instead.
+  // uppercase-event-type chips — assert on the real card content instead. Item 05 moved
+  // HypothesisCard/AlternativesPanel prose behind the non-default "Evidence & Hypothesis"
+  // tab, but GatePanel's ApprovalCard (claims/action/alternatives) stays always-visible
+  // above the tabs per the hard "never hidden behind a tab" requirement — assert against
+  // that on the default (Timeline) tab, then click into the other tab to confirm the
+  // hypothesis content is really there too.
   assert.match(bodyText, /SUBAGENT_START/);
   assert.match(bodyText, /TOOL_CALL/);
-  assert.match(bodyText, /ROOT CAUSE/); // HypothesisCard label
-  assert.match(bodyText, /SessionValidator/); // real seeded hypothesis rootCause text
-  assert.match(bodyText, /RECOMMENDED ACTION/); // ApprovalCard label
+  assert.match(bodyText, /RECOMMENDED ACTION/); // ApprovalCard label, always visible above tabs
   assert.match(bodyText, /Roll back commit a1b2c3d on auth-service/); // real seeded approval action
-  assert.match(bodyText, /ALTERNATIVES CONSIDERED/); // AlternativesPanel, inline not behind a click
+  assert.match(bodyText, /ALTERNATIVES/); // AlternativesPanel, inline not behind a click (copy trimmed item 08)
+  assert.match(bodyText, /SessionValidator/); // ApprovalCard claim text, real seeded evidence
   assert.match(bodyText, /ACTION_EXECUTED/);
   assert.doesNotMatch(bodyText, /Incident not found/);
+
+  // Evidence & Hypothesis tab: hypothesis content is real, just not default-mounted.
+  await page.click('text="Evidence & Hypothesis"');
+  await page.waitForTimeout(300);
+  const evidenceTabText = await page.evaluate(() => document.body.innerText);
+  assert.match(evidenceTabText, /ROOT CAUSE/); // HypothesisCard label
+  assert.match(evidenceTabText, /SessionValidator/); // real seeded hypothesis rootCause text
+
   await page.close();
 });
 

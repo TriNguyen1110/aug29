@@ -1,4 +1,4 @@
-# Incident Responder
+# Snitch
 
 Built for the Agent Harness Hackathon (Aug 29, 2026) — Best Use of the Agent Harness, Best Use
 of Bright Data, and Best Code Quality tracks.

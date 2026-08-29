@@ -1,3 +1,4 @@
+import { Search, Clock, Wrench, CheckCircle2 } from "lucide-react";
 import { Pill } from "@/components/ui/pill";
 import type { IncidentStatus } from "@/lib/types";
 
@@ -19,9 +20,18 @@ const DOT: Record<IncidentStatus, "resolved" | "awaiting" | "active" | "neutral"
   resolved: "resolved",
 };
 
+const ICON: Record<IncidentStatus, typeof Search> = {
+  investigating: Search,
+  awaiting_approval: Clock,
+  remediating: Wrench,
+  resolved: CheckCircle2,
+};
+
 export function StatusBadge({ status }: { status: IncidentStatus }) {
+  const Icon = ICON[status];
   return (
     <Pill dot={DOT[status]}>
+      <Icon size={12} strokeWidth={1.8} />
       <span className="font-mono">{LABEL[status]}</span>
     </Pill>
   );

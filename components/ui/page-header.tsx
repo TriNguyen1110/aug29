@@ -11,7 +11,7 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="border-b border-border pb-6">
+    <header className="border-b border-border pb-8">
       <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted">
         {eyebrow}
       </p>
@@ -19,7 +19,7 @@ export function PageHeader({
         {title}
       </h1>
       {children && (
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">{children}</p>
+        <p className="mt-2.5 max-w-xl text-sm leading-relaxed text-muted">{children}</p>
       )}
     </header>
   );

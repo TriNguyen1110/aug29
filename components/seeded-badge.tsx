@@ -1,3 +1,4 @@
+import { FlaskConical, Radio } from "lucide-react";
 import { Pill } from "@/components/ui/pill";
 
 // Mid-task correction: a viewer can't otherwise tell a historical fixture from something
@@ -15,11 +16,13 @@ export function isSeeded(incidentId: string): boolean {
 export function SeededBadge({ incidentId }: { incidentId: string }) {
   return isSeeded(incidentId) ? (
     <Pill dot="neutral">
-      <span className="font-mono">Seeded example</span>
+      <FlaskConical size={12} strokeWidth={1.8} />
+      <span className="font-mono">Seeded</span>
     </Pill>
   ) : (
     <Pill dot="active">
-      <span className="font-mono">Live-triggered</span>
+      <Radio size={12} strokeWidth={1.8} />
+      <span className="font-mono">Live</span>
     </Pill>
   );
 }

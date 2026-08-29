@@ -45,6 +45,37 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Wordmark treatment — the one deliberate brand moment in an otherwise plain
+   console (2026-08-29 "no visual brand" correction), corrected same-day to
+   drop the gradient-fill version per "use less gradient in the UI": solid
+   foreground text + an indigo glow behind it, not a color-gradient fill. */
+.text-wordmark-glow {
+  color: var(--foreground);
+  text-shadow: 0 0 24px rgba(88, 101, 242, 0.55), 0 0 6px rgba(88, 101, 242, 0.35);
+}
+
+/* Radar sweep ring behind the wordmark mark — "detects incidents" as a live
+   visual idea, not just a static logo. */
+@keyframes radar-ping {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.65;
+  }
+  70%,
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+.animate-radar-ping {
+  animation: radar-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-radar-ping {
+    animation: none;
+  }
+}
+
 /* Film-grain overlay — ported verbatim from willder's grain-background.tsx +
    this class (color-independent: it's a WebGL noise canvas blended via
    soft-light, not a palette token). One canvas spanning the viewport so

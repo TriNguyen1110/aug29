@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check, X } from "lucide-react";
 import type { ActionSpec, Alternative, Claim } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
@@ -63,8 +64,8 @@ export function ApprovalCard({
       glow={isPending ? "awaiting" : undefined}
       className={
         isPending
-          ? "flex flex-col gap-5 !border-status-awaiting p-6"
-          : "flex flex-col gap-5 p-6"
+          ? "flex flex-col gap-6 !border-status-awaiting p-7"
+          : "flex flex-col gap-6 p-7"
       }
     >
       <div id={`approval-${approvalId}`} className="flex flex-wrap items-center justify-between gap-2">
@@ -93,7 +94,7 @@ export function ApprovalCard({
 
       <div>
         <p className="mb-2 font-mono text-xs uppercase tracking-[0.14em] text-muted">
-          claims backing this action ({claims.length})
+          claims ({claims.length})
         </p>
         <ul className="flex flex-col gap-2">
           {claims.map((c, i) => (
@@ -104,7 +105,7 @@ export function ApprovalCard({
 
       <div>
         <p className="mb-2 font-mono text-xs uppercase tracking-[0.14em] text-muted">
-          alternatives considered ({alternatives.length})
+          alternatives ({alternatives.length})
         </p>
         <AlternativesPanel alternatives={alternatives} />
       </div>
@@ -112,10 +113,12 @@ export function ApprovalCard({
       {isPending ? (
         <div className="flex flex-col gap-2 border-t border-border pt-5">
           <div className="flex gap-3">
-            <Button variant="primary" size="md" disabled={busy} onClick={() => decide("approve")}>
+            <Button variant="primary" size="md" disabled={busy} onClick={() => decide("approve")} className="gap-1.5">
+              <Check size={15} strokeWidth={2} />
               Approve
             </Button>
-            <Button variant="danger" size="md" disabled={busy} onClick={() => decide("deny")}>
+            <Button variant="danger" size="md" disabled={busy} onClick={() => decide("deny")} className="gap-1.5">
+              <X size={15} strokeWidth={2} />
               Deny
             </Button>
           </div>
