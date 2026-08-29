@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-badge";
+import { SeededBadge } from "@/components/seeded-badge";
 import { EventTimeline } from "@/components/event-timeline";
 import { EvidenceHypothesisPanel } from "@/components/evidence-hypothesis-panel";
 import { GatePanel } from "@/components/gate-panel";
@@ -87,6 +88,7 @@ export function IncidentDetailClient({
       </PageHeader>
       <div className="flex items-center gap-3">
         <StatusBadge status={status} />
+        <SeededBadge incidentId={incident.id} />
         {isLive && (
           <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-active" />

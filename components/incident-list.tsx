@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
+import { SeededBadge } from "@/components/seeded-badge";
 import type { Incident } from "@/lib/types";
 
 function formatTs(iso: string) {
@@ -34,7 +35,10 @@ export function IncidentList({ incidents }: { incidents: Incident[] }) {
                 {incident.id} · {formatTs(incident.createdAt)}
               </span>
             </div>
-            <StatusBadge status={incident.status} />
+            <div className="flex shrink-0 items-center gap-2">
+              <SeededBadge incidentId={incident.id} />
+              <StatusBadge status={incident.status} />
+            </div>
           </Card>
         </Link>
       ))}
