@@ -4,22 +4,22 @@ Real spoken narration, trimmed for a slow pace (~350 words total). Tabs open bef
 the app, GitHub repo, the PR with Qodo's review, TrueForge's dashboard. Switch tabs, don't wait
 on page loads.
 
-## 1. About the project (0:00–0:20)
+## 1. About the project (0:00–0:25)
 
-"It's 3am. Checkout's throwing errors. Your first question is always the same: is this us, or a
-vendor down? Snitch answers that before you even open your laptop. It investigates the alert and
-hands you a root cause — with the real log line, the real commit, attached. And it won't touch
-anything until you say yes."
+"It's 3am. Checkout's throwing errors. This is for the on-call engineer holding the phone —
+whatever pages you already, pages this too. It checks three things, every time: the real logs,
+the real code that changed, and — live — whether a vendor is actually down. A dashboard just
+hands you that data and you connect the dots. Snitch connects them for you, and hands you one
+claim to approve or deny — not a wall of logs to read at 3am."
 
 ## 2. Tech stack and architecture (0:20–0:50)
 
 Switch to the GitHub repo tab.
 
-"It runs on TrueForge, the actual harness. Three subagents investigate in parallel — logs, diff,
-and a live external check through Bright Data. The approval gate is TrueForge's own real
-mechanism, not something we faked to look convincing — we verified that independently. OpenAI
-does the reasoning. And Qodo reviewed this exact PR before it shipped — caught a real security
-gap, which we fixed."
+"It runs on TrueForge, the real harness — three subagents in parallel, and an approval gate
+that's TrueForge's own mechanism, verified independently, not something we faked. OpenAI does
+the reasoning. Qodo reviewed this exact PR before it shipped, and caught a real security gap,
+which we fixed."
 
 ## 3. Demo (0:50–2:30)
 
@@ -29,7 +29,8 @@ Switch to the app.
 investigation**.
 
 "It's investigating live." Let the Timeline fill in. "Logs found the real error. Diff found the
-real commit. And this — Bright Data — is checking the vendor's real changelog live."
+real commit. And this — Bright Data — turns 'is it them or us' into a checked fact, live,
+instead of a guess."
 
 Reaches `awaiting_approval`. Click into **Evidence and Hypothesis**. "Every claim has its actual
 evidence right next to it. This one's marked unverified — it couldn't back it, so it says so
