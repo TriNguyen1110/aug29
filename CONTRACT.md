@@ -171,13 +171,16 @@ Backend seeds two past `Incident` rows (status `resolved`) with a full event his
 Frontend builds the incident list and detail view against these from the start — never blocks
 waiting for a real harness run to exist.
 
-**The live-triggered demo incident is "Checkout API error rate spike."** This is the scenario
-that makes the `external` subagent's Bright Data targets (see CLAUDE.md's "Bright Data" section
-— Stripe status + Stripe API changelog) land for a judge instantly: the first thing anyone
-on-call asks about a checkout error spike is "is this us, or is Stripe down?" The demo should let
-that subagent answer it live with a real scraped page as the receipt, not an assertion — either
-a live Stripe incident becomes the evidence-backed root cause, or a clean Stripe status honestly
-rules it out and the hypothesis has to explain an internal cause instead (rule 5).
+**The live-triggered demo incident is "Checkout API error rate spike."** The diff subagent's
+fixture already claims the cause is a `stripe-node` dependency bump (14.8.0 → 17.0.0). The
+`external` subagent's Bright Data targets (see CLAUDE.md's "Bright Data" section — the real
+`stripe-node` GitHub changelog, page-limited for speed, plus GitHub's status page) check that
+claim against reality: does the dependency's real release notes explain the behavior change, or
+is there a broader GitHub-wide signal. (Original targets were Stripe's own status/changelog
+pages — swapped after hitting an account-level KYC block; see CLAUDE.md's Bright Data section
+for the full story.) Either a real changelog excerpt becomes evidence-backed root-cause support,
+or a clean/inconclusive scrape honestly leaves the hypothesis resting on the diff/logs evidence
+alone (rule 5) — never a fabricated external cause.
 
 ## Fallback table
 
