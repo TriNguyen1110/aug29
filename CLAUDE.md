@@ -183,6 +183,10 @@ Fail loudly. Assert event counts are greater than zero after a trigger rather th
 warning. Keep every step idempotent and resumable — the whole pitch is that a run survives a
 refresh, so this isn't optional.
 
+**Mobile is explicitly out of scope (2026-08-29 correction).** The deliverable is a desktop demo
+video, not a responsive product — don't spend agent/verifier time on 390px/mobile-viewport
+checks or fixes. Desktop only (1440x900 / 1920x1080).
+
 **No hardcoded/canned data on the live-triggered investigation path.** The two seeded past
 incidents (item 01) are legitimately static fixtures — they exist so the list is never empty
 before a live demo run, and that's the only place static data belongs. Everything produced by a
