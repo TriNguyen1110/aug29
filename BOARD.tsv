@@ -1,1 +1,14 @@
 ts	kind	id	value	owner	scope	note
+H+0.1	item	01	backlog	backend	DATA	Seed 2 resolved incidents w/ full event history; GET /api/incidents + GET /api/incidents/:id return real seeded data per CONTRACT.md
+H+0.2	item	02	backlog	frontend	SCREEN	Incident list + live event timeline UI, build against item 01 fact rows once posted
+H+0.3	item	03	backlog	backend	DATA	Wire real TrueForge harness run: trigger endpoint, 3 subagents (logs/diff/external via Bright Data per CLAUDE.md), approval gate that actually blocks, SSE event stream
+H+0.4	item	04	backlog	frontend	SCREEN	Approval gate UI (unmissable), evidence-per-claim rendering, alternatives w/ tradeoffs, clarification_requested state
+H+0.35	item	01	review	backend	DATA	commit 62fda77: lib/types.ts+store.ts+seed.ts, GET /api/incidents + /api/incidents/:id live and verified against running dev server, npm run seed passes
+H+0.36	fact	01	route-shape	backend	DATA	GET /api/incidents/:id returns { incident, events } (not a flat merge) — frontend detail view must read res.incident and res.events separately
+H+0.37	fact	01	seed-ids	backend	DATA	Seeded incident ids: inc_auth500 (rollback, 16 events), inc_imgupload (toggle_flag, 16 events incl. clarification_requested/provided) — both status resolved, both usable as frontend fixtures before live trigger exists
+H+0.38	fact	01	store-impl	backend	DATA	In-memory store lives in lib/store.ts on globalThis (survives Next dev HMR reloads); seeding is lazy+idempotent, triggered on first GET to either route via lib/seed.ts seedPastIncidents()
+H+0.5	item	02	review	frontend	SCREEN	Incident list (/) + per-incident event timeline (/incidents/[id]) built against real GET /api/incidents + GET /api/incidents/:id (backend landed shape matches CONTRACT.md exactly: list -> Incident[], detail -> {incident, events}). Verified live against seeded data on :3000. Commit 0d7aad0.
+H+0.5	fact	02	reused	frontend	SCREEN	Reused willder/components/ui/{button,card,chip,pill,modal,tabs,toast,page-header}.tsx, retheme only (near-black palette, square corners, no glow/pill shapes, color reserved for incident status). Copied into components/ui/ in this repo.
+H+0.5	fact	02	api-shape-confirmed	frontend	SCREEN	GET /api/incidents returns Incident[] directly; GET /api/incidents/:id returns {incident, events}. Confirmed by reading backend route.ts, matches app/lib/api.ts assumption exactly, no blocked row needed.
+H+0.42	item	01	done	backend	DATA	GET /api/incidents + /api/incidents/:id verified live: shapes match CONTRACT.md exactly, list most-recent-first non-empty (2 seeded), detail returns {incident,events} with 16 events each incl. clarification round-trip for inc_imgupload; npm run build and npm run seed both clean
+H+0.43	fact	01	test-coverage	verifier	DATA	Added tests/backend.flows.test.mjs (4 cases: list shape+order+seed-ids, inc_auth500 detail+count, inc_imgupload detail+count+clarification types, 404 shape); run with node --test tests/backend.flows.test.mjs, all 4 pass

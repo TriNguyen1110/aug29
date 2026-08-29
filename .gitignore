@@ -4,5 +4,6 @@ dist/
 data/raw/
 *.db
 *.sqlite
+*.tsbuildinfo
 .env
 .env.local
