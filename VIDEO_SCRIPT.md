@@ -28,9 +28,10 @@ Switch to the app.
 "Here's the incident list. This box triggers a real investigation." Hit **Trigger
 investigation**.
 
-"It's investigating live." Let the Timeline fill in. "Logs found the real error. Diff found the
-real commit. And this — Bright Data — turns 'is it them or us' into a checked fact, live,
-instead of a guess."
+"It's investigating live." Let the Timeline fill in. "Logs and diff run on demo fixtures today —
+there's no real production system behind this build — but the agent's reasoning over them is
+real, not scripted. What's genuinely live is this: Bright Data, right now, turning 'is it them
+or us' into a checked fact instead of a guess."
 
 Reaches `awaiting_approval`. Click into **Evidence and Hypothesis**. "Every claim has its actual
 evidence right next to it. This one's marked unverified — it couldn't back it, so it says so
