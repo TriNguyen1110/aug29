@@ -13,7 +13,7 @@
 import { randomUUID } from "node:crypto";
 import { appendEvent, addApproval, addIncident, getApproval, updateApproval, updateIncidentStatus } from "./store";
 import { publish } from "./bus";
-import { runTfTurn, parseTfJson } from "./trueforge";
+import { runTfTurn, parseTfJson, startRemediationTurn, resumeRemediationTurn, type PausedRemediationTurn } from "./trueforge";
 import { logQuery, gitLog, gitShow } from "./simTools";
 import { getCachedFallback, getTargets, scrapeTarget } from "./brightdata";
 import type { ActionSpec, Alternative, Claim, Evidence, Incident, IncidentEvent } from "./types";
@@ -34,15 +34,25 @@ function emit(incidentId: string, type: IncidentEvent["type"], payload: Record<s
   return event;
 }
 
-// Every claim's evidence must be a literal substring of the tool output it cites.
-// Never trust the model's own excerpt verbatim without checking — drop to [] instead of
-// fabricating/paraphrasing (CONTRACT.md's core grounding rule).
-function groundEvidence(evidence: Evidence[] | undefined, sourceTexts: string[]): Evidence[] {
+// Keyed by Evidence.source, not a flat list — provenance matters, not just "the excerpt
+// exists somewhere." (Qodo PR #1 finding, BOARD.tsv H+2.2b: checking against ANY source
+// text let a claim mislabel which source an excerpt actually came from and still pass.)
+type SourceTextMap = Partial<Record<Evidence["source"], string>>;
+
+// Every claim's evidence must be a literal substring of the SPECIFIC source it claims to
+// come from (evidence.source), never any source text that happens to contain it. Never
+// trust the model's own excerpt verbatim without checking — drop to [] instead of
+// fabricating/paraphrasing/mislabeling (CONTRACT.md's core grounding rule).
+function groundEvidence(evidence: Evidence[] | undefined, sourceTexts: SourceTextMap): Evidence[] {
   if (!evidence) return [];
-  return evidence.filter((e) => e?.excerpt && sourceTexts.some((t) => t.includes(e.excerpt)));
+  return evidence.filter((e) => {
+    if (!e?.excerpt) return false;
+    const text = sourceTexts[e.source];
+    return typeof text === "string" && text.includes(e.excerpt);
+  });
 }
 
-function groundClaims(claims: Claim[] | undefined, sourceTexts: string[]): Claim[] {
+function groundClaims(claims: Claim[] | undefined, sourceTexts: SourceTextMap): Claim[] {
   if (!claims) return [];
   return claims.map((c) => ({ text: c.text, evidence: groundEvidence(c.evidence, sourceTexts) }));
 }
@@ -99,7 +109,7 @@ async function runLogsSubagent(incidentId: string): Promise<{ result: SubagentFi
     jsonSchemaName: "logs_finding",
   });
   const parsed = parseTfJson<SubagentFindingResult>(raw);
-  const grounded: SubagentFindingResult = { finding: parsed.finding, evidence: groundEvidence(parsed.evidence, [output]) };
+  const grounded: SubagentFindingResult = { finding: parsed.finding, evidence: groundEvidence(parsed.evidence, { log: output }) };
 
   emit(incidentId, "subagent_result", { agent: "logs", finding: grounded.finding, evidence: grounded.evidence });
   return { result: grounded, sourceText: output };
@@ -138,7 +148,13 @@ async function runDiffSubagent(incidentId: string): Promise<{ result: SubagentFi
     jsonSchemaName: "diff_finding",
   });
   const parsed = parseTfJson<SubagentFindingResult>(raw);
-  const grounded: SubagentFindingResult = { finding: parsed.finding, evidence: groundEvidence(parsed.evidence, [combined]) };
+  // The diff subagent's instructions allow evidence.source to be either "commit" or
+  // "diff" — both legitimately refer to this same git_log+git_show text, so both keys map
+  // to it (unlike logs/external, which each only ever have one valid source).
+  const grounded: SubagentFindingResult = {
+    finding: parsed.finding,
+    evidence: groundEvidence(parsed.evidence, { commit: combined, diff: combined }),
+  };
 
   emit(incidentId, "subagent_result", { agent: "diff", finding: grounded.finding, evidence: grounded.evidence });
   return { result: grounded, sourceText: combined };
@@ -164,7 +180,12 @@ async function runExternalSubagent(incidentId: string): Promise<{ result: Subage
         agent: "external",
         tool: "bdata_scrape",
         input: `collector=${target.collectorId} url=${target.url}`,
-        output: result.raw.slice(0, 4000),
+        // Persist the FULL raw scrape text, not a truncated slice — synthesis reads up to
+        // 12000 chars and groundEvidence checks the full untruncated text, so truncating
+        // the persisted audit-log event here would let a claim cite content invisible in
+        // the event log (Qodo PR #1 finding, BOARD.tsv H+2.2c). Keeping the audit log
+        // complete is worth the size; these pages are tens of KB, not unbounded.
+        output: result.raw,
       });
       scraped.push({ name: target.name, url: target.url, text: result.raw });
     } else {
@@ -194,7 +215,8 @@ async function runExternalSubagent(incidentId: string): Promise<{ result: Subage
           agent: "external",
           tool: "bdata_scrape",
           input: `collector=${target.collectorId} url=${target.url} (cached fallback replay, live scrape failed: ${result.cause})`,
-          output: `${label}\n${fallback.raw.slice(0, 4000)}`,
+          // Full text, same reasoning as the live-scrape tool_call above.
+          output: `${label}\n${fallback.raw}`,
         });
         scraped.push({ name: target.name, url: target.url, text: `${label}\n${fallback.raw}` });
       }
@@ -236,7 +258,7 @@ async function runExternalSubagent(incidentId: string): Promise<{ result: Subage
     jsonSchemaName: "external_finding",
   });
   const parsed = parseTfJson<SubagentFindingResult>(raw);
-  const grounded: SubagentFindingResult = { finding: parsed.finding, evidence: groundEvidence(parsed.evidence, [combined]) };
+  const grounded: SubagentFindingResult = { finding: parsed.finding, evidence: groundEvidence(parsed.evidence, { external: combined }) };
 
   emit(incidentId, "subagent_result", { agent: "external", finding: grounded.finding, evidence: grounded.evidence });
   return { result: grounded, sourceText: combined };
@@ -316,7 +338,7 @@ const synthesisSchema = {
 async function runSynthesis(
   incidentId: string,
   findings: { agent: string; result: SubagentFindingResult }[],
-  allSourceTexts: string[]
+  sourceTextMap: SourceTextMap
 ): Promise<SynthesisResult> {
   const findingsText = findings
     .map((f) => `${f.agent} subagent finding: ${f.result.finding}\nevidence: ${JSON.stringify(f.result.evidence)}`)
@@ -364,7 +386,7 @@ async function runSynthesis(
     };
   }
 
-  const grounded = groundClaims(parsed.claims, allSourceTexts);
+  const grounded = groundClaims(parsed.claims, sourceTextMap);
   // Require at least one claim to retain real (non-empty) evidence after grounding —
   // otherwise the model's excerpts didn't actually match tool output and we must not
   // present this as evidence-backed (CONTRACT.md's core rule).
@@ -460,20 +482,31 @@ export async function runIncident(incidentId: string, scenario: string): Promise
       { agent: "diff", result: diff.result },
       { agent: "external", result: external.result },
     ];
-    let sourceTexts = [logs.sourceText, diff.sourceText, external.sourceText];
+    // Keyed by Evidence.source so grounding checks an excerpt against the SPECIFIC source
+    // it claims, not any of the three subagents' text (Qodo PR #1 finding, H+2.2b). "commit"
+    // and "diff" both legitimately point at the diff subagent's combined git_log+git_show
+    // text; there is no valid Evidence.source for the on-call clarification answer below
+    // (it's free-text context, never asserted as tool evidence), so the map doesn't need an
+    // entry for it.
+    const sourceTextMap: SourceTextMap = {
+      log: logs.sourceText,
+      diff: diff.sourceText,
+      commit: diff.sourceText,
+      external: external.sourceText,
+    };
 
-    let synthesis = await runSynthesis(incidentId, findings, sourceTexts);
+    let synthesis = await runSynthesis(incidentId, findings, sourceTextMap);
 
     if (!synthesis.canHypothesize) {
       emit(incidentId, "clarification_requested", { question: synthesis.question, gap: synthesis.gap });
       const answer = await waitForClarification(incidentId);
       emit(incidentId, "clarification_provided", { question: synthesis.question, answer });
 
-      // Resume with the added context folded into the external finding's evidence pool
-      // as free-text context (not asserted as tool evidence) and re-run synthesis once.
+      // Resume with the added context folded into the findings pool as free-text context
+      // (not asserted as tool evidence, so sourceTextMap is unchanged) and re-run synthesis
+      // once.
       findings = [...findings, { agent: "on-call", result: { finding: answer, evidence: [] } }];
-      sourceTexts = [...sourceTexts, answer];
-      synthesis = await runSynthesis(incidentId, findings, sourceTexts);
+      synthesis = await runSynthesis(incidentId, findings, sourceTextMap);
 
       if (!synthesis.canHypothesize) {
         // Still can't back a claim even with clarification — stop honestly rather than
@@ -488,8 +521,6 @@ export async function runIncident(incidentId: string, scenario: string): Promise
       claims: synthesis.claims,
     });
 
-    updateIncidentStatus(incidentId, "awaiting_approval");
-
     const approvalId = `appr_${randomUUID()}`;
     addApproval({
       id: approvalId,
@@ -503,6 +534,49 @@ export async function runIncident(incidentId: string, scenario: string): Promise
       resolvedAt: null,
     });
 
+    // Item 11: the ActionSpec is a real, gated MCP tool (execute_remediation, hosted at
+    // app/api/mcp/remediation) that TrueForge itself pauses on — this is the harness's
+    // NATIVE tool.approval_required primitive, not our own hand-rolled block. Drive the
+    // remediation agent to call it with the literal approved values before we ever tell
+    // anyone an approval is pending, so `approval_requested` below reflects a pause that
+    // genuinely already exists inside TrueForge.
+    const paused: PausedRemediationTurn = await startRemediationTurn({
+      model: MODEL_SUB,
+      incidentId,
+      approvalId,
+      actionSpec: synthesis.actionSpec,
+    });
+
+    // Never trust the model's tool call blindly: diff-check what it actually passed
+    // against the exact approved ActionSpec (CONTRACT.md rule 2) before treating the pause
+    // as legitimate. A mismatch here means the model altered the values we gave it
+    // verbatim — refuse rather than proceed on drifted parameters.
+    const paramsMatch = (a: Record<string, string> | undefined, b: Record<string, string>) => {
+      const ak = Object.keys(a ?? {}).sort();
+      const bk = Object.keys(b).sort();
+      return ak.length === bk.length && ak.every((k, i) => k === bk[i] && a?.[k] === b[k]);
+    };
+    const argsMatchApproved =
+      paused.calledInput?.incidentId === incidentId &&
+      paused.calledInput?.approvalId === approvalId &&
+      paused.calledInput?.type === synthesis.actionSpec.type &&
+      paused.calledInput?.target === synthesis.actionSpec.target &&
+      paramsMatch(paused.calledInput?.params, synthesis.actionSpec.params);
+
+    if (!argsMatchApproved) {
+      await resumeRemediationTurn({
+        sessionId: paused.sessionId,
+        turnId: paused.turnId,
+        threadId: paused.threadId,
+        toolCallId: paused.toolCallId,
+        decision: "deny",
+        denyReason: "Tool call arguments did not match the approved ActionSpec verbatim — refused before any human approval was even requested.",
+      });
+      throw new Error(
+        `remediation tool call arguments diverged from the approved ActionSpec (called: ${JSON.stringify(paused.calledInput)}, approved: ${JSON.stringify(synthesis.actionSpec)}) — refused execution`
+      );
+    }
+
     emit(incidentId, "approval_requested", {
       approvalId,
       action: synthesis.action,
@@ -511,8 +585,16 @@ export async function runIncident(incidentId: string, scenario: string): Promise
       alternatives: synthesis.alternatives,
     });
 
+    // Flip status only once approval_requested is actually in the log — otherwise a
+    // GET landing in the gap between the status flip and the event append would see
+    // status "awaiting_approval" with no approval_requested event yet, which is exactly
+    // the kind of frontend-visible inconsistency the grounding rules forbid.
+    updateIncidentStatus(incidentId, "awaiting_approval");
+
     // Genuinely blocks here — resolves only when POST /api/incidents/:id/approvals/:id
-    // calls resolveApproval(). No timeout, no auto-approve.
+    // calls resolveApproval(). No timeout, no auto-approve. The real enforcement is
+    // TrueForge's own paused turn above; this Promise just lets our API route wake this
+    // coroutine back up with the human's decision so we know which way to resume it.
     const decision = await waitForApproval(approvalId);
 
     const approvalRecord = getApproval(approvalId);
@@ -520,6 +602,13 @@ export async function runIncident(incidentId: string, scenario: string): Promise
     updateApproval({ ...approvalRecord, status: decision === "approve" ? "approved" : "denied", resolvedAt: new Date().toISOString() });
 
     if (decision === "deny") {
+      await resumeRemediationTurn({
+        sessionId: paused.sessionId,
+        turnId: paused.turnId,
+        threadId: paused.threadId,
+        toolCallId: paused.toolCallId,
+        decision: "deny",
+      });
       emit(incidentId, "approval_denied", { approvalId });
       updateIncidentStatus(incidentId, "investigating");
       return;
@@ -528,15 +617,21 @@ export async function runIncident(incidentId: string, scenario: string): Promise
     emit(incidentId, "approval_granted", { approvalId });
     updateIncidentStatus(incidentId, "remediating");
 
-    // Execute only what was approved: re-read the approved ActionSpec from the store by
-    // approvalId and run exactly that, never re-derive "what the fix should be" here
-    // (CONTRACT.md rule 2).
+    // Execute only what was approved: resume the SAME paused TrueForge turn with "allow" —
+    // the harness itself calls the gated execute_remediation tool for real at this point,
+    // never let the model re-derive "what the fix should be" here (CONTRACT.md rule 2).
     const approved = getApproval(approvalId);
     if (!approved || approved.status !== "approved") {
       throw new Error(`refusing to execute: approval ${approvalId} is not in approved state`);
     }
     const spec = approved.actionSpec;
-    const result = `Simulated ${spec.type} on ${spec.target} with params ${JSON.stringify(spec.params)} — sandbox execution is simulated per CONTRACT.md's fallback table (real sandboxed exec was cut for this build). Error rate returned to baseline within the simulated window.`;
+    const { resultText: result } = await resumeRemediationTurn({
+      sessionId: paused.sessionId,
+      turnId: paused.turnId,
+      threadId: paused.threadId,
+      toolCallId: paused.toolCallId,
+      decision: "approve",
+    });
 
     emit(incidentId, "action_executed", { action: approved.action, actionSpec: spec, result });
 

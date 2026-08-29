@@ -68,44 +68,66 @@ function runBdata(args: string[]): Promise<{ stdout: string; stderr: string; cod
 
 export async function scrapeTarget(target: ScrapeTarget): Promise<ScrapeResult> {
   const { stdout, stderr, code } = await runBdata(["scraper", "run", target.collectorId, target.url]);
+  // `combined` is only used in-memory for error/blocking classification below — never
+  // written to the cache file. The cache must hold the ORIGINAL verbatim stdout (our own
+  // "cache raw response before parsing" rule), not a merged-and-trimmed transform of it
+  // (Qodo PR #1 finding, BOARD.tsv H+2.2e). stderr is diagnostic, not part of the scraped
+  // payload, so it's cached alongside as a separate sibling file instead of merged in.
   const combined = `${stdout}\n${stderr}`.trim();
 
   const rawDir = join(process.cwd(), "data", "raw");
   mkdirSync(rawDir, { recursive: true });
   const cachePath = join(rawDir, `${target.collectorId}_${Date.now()}.txt`);
-  writeFileSync(cachePath, combined || "(empty response)", "utf8");
+  writeFileSync(cachePath, stdout, "utf8");
+  if (stderr.trim()) {
+    writeFileSync(`${cachePath}.stderr.txt`, stderr, "utf8");
+  }
 
   // Classify error/blocking signatures regardless of exit code — bdata has been observed
   // to exit 0 while stdout is itself an error/compliance-block body (e.g. the real KYC
   // block hit in this project: "Crawler error: Forbidden: target site requires special
   // permission... complete a KYC process"), which is long enough to clear
   // MIN_HEALTHY_LENGTH and would otherwise be misclassified as a real, healthy scrape.
+  //
+  // BUT (BOARD.tsv item 09 verifier kickback, H+2.11/H+2.17): the keyword scan below must
+  // NOT run against the full body of a genuinely large/successful scrape — a real,
+  // substantial live payload (e.g. 83KB of stripe-node changelog HTML) can legitimately
+  // contain ordinary substrings like "blocked" (inside the field name
+  // funding_types_blocked) or "bot" (inside the word "both") that would otherwise be
+  // misclassified as a bot-wall block. Every real error/compliance-block body observed so
+  // far (KYC block ~500 chars, rate-limit JSON ~200 chars) is well under 2000 chars, and no
+  // successful scrape of substantial content has ever been anywhere near that small — so
+  // only run the keyword classifier when the process itself signaled failure (code !== 0)
+  // or the body is short enough to plausibly BE an error/block body rather than real
+  // content.
   const lower = combined.toLowerCase();
   const errorCause = ((): "selector_drift" | "bot_wall" | "rate_limit" | "network" | "unknown" | null => {
-    // Check rate-limit signatures before the generic bot_wall "crawler error" match below —
-    // Bright Data's real rate-limit body is `{"error":"Crawler error: ... too many
-    // requests","error_code":"rate_limit"}`, which also contains the literal text "crawler
-    // error" and would otherwise be misclassified as bot_wall (observed live on this exact
-    // target). "rate_limit" (underscore, as it appears in error_code) was previously missed
-    // by a "rate limit" (space) check.
-    if (
-      lower.includes("rate limit") ||
-      lower.includes("rate_limit") ||
-      lower.includes("too many requests") ||
-      lower.includes("429")
-    )
-      return "rate_limit";
-    if (
-      lower.includes("captcha") ||
-      lower.includes("blocked") ||
-      lower.includes("bot") ||
-      lower.includes("forbidden") ||
-      lower.includes("compliance") ||
-      lower.includes("kyc") ||
-      lower.includes("crawler error")
-    )
-      return "bot_wall";
-    if (lower.includes("timeout") || lower.includes("network") || lower.includes("econn")) return "network";
+    if (code !== 0 || combined.length < 2000) {
+      // Check rate-limit signatures before the generic bot_wall "crawler error" match below —
+      // Bright Data's real rate-limit body is `{"error":"Crawler error: ... too many
+      // requests","error_code":"rate_limit"}`, which also contains the literal text "crawler
+      // error" and would otherwise be misclassified as bot_wall (observed live on this exact
+      // target). "rate_limit" (underscore, as it appears in error_code) was previously missed
+      // by a "rate limit" (space) check.
+      if (
+        lower.includes("rate limit") ||
+        lower.includes("rate_limit") ||
+        lower.includes("too many requests") ||
+        lower.includes("429")
+      )
+        return "rate_limit";
+      if (
+        lower.includes("captcha") ||
+        lower.includes("blocked") ||
+        lower.includes("bot") ||
+        lower.includes("forbidden") ||
+        lower.includes("compliance") ||
+        lower.includes("kyc") ||
+        lower.includes("crawler error")
+      )
+        return "bot_wall";
+      if (lower.includes("timeout") || lower.includes("network") || lower.includes("econn")) return "network";
+    }
     // code -1 is our own ETIMEDOUT sentinel from runBdata below (process killed by
     // execFile's own timeout, e.g. Bright Data's slow "batch mode" pagination fallback on
     // github.com/stripe/stripe-node/releases never returning within SCRAPE_TIMEOUT_MS in

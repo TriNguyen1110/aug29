@@ -76,10 +76,14 @@ test("on-call journey: trigger checkout_error_spike, read the evidence-backed hy
 
   // Wait for the run to actually reach the point a human is asked to decide something —
   // this is the moment the reviewer's tab would actually be opened on stage.
+  // Item 11 (native TrueForge gated-tool approval): reaching this point now includes two
+  // extra real TrueForge session/turn round-trips. On top of that, live Bright Data
+  // latency varies a lot run to run (a live isolated timing check just now measured ~80s
+  // for a single scrape) — same reasoning as tests/backend.flows.test.mjs's matching bump.
   const atGate = await pollUntil(
     incidentId,
     (d) => d.incident.status === "awaiting_approval",
-    { timeoutMs: 45000 },
+    { timeoutMs: 150000 },
   );
 
   const approvalEvent = atGate.events.find((e) => e.type === "approval_requested");

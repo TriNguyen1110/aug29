@@ -163,7 +163,14 @@ test("POST /api/incidents/trigger starts a real run that blocks on approval, the
   await pollUntil(incidentId, (d) => d.events.some((e) => e.type === "subagent_start"), { timeoutMs: 20000 });
 
   // Wait for the gate. Confirm status via GET *before* posting anything.
-  const atGate = await pollUntil(incidentId, (d) => d.incident.status === "awaiting_approval", { timeoutMs: 45000 });
+  // Item 11 (native TrueForge gated-tool approval) adds two real extra TrueForge
+  // session/turn round-trips beyond the three subagents + synthesis. On top of that, a
+  // live isolated timing check (bdata scraper run against the same github_status
+  // collector, no concurrency) measured ~80s for a single scrape just now — Bright Data's
+  // live latency varies a lot run to run (BOARD.tsv item 09's H+2.12 already documented
+  // 7s-33s variance for one target; today it's worse). 150s covers a real slow scrape plus
+  // everything else in the pipeline without ever faking speed we don't have.
+  const atGate = await pollUntil(incidentId, (d) => d.incident.status === "awaiting_approval", { timeoutMs: 150000 });
   assert.equal(atGate.incident.status, "awaiting_approval");
   assert.ok(
     !atGate.events.some((e) => e.type === "action_executed"),
@@ -285,14 +292,15 @@ test("data/targets.json + a live run use the new non-Stripe Bright Data targets,
   assert.equal(trigger.status, 200);
   const { incidentId } = await trigger.json();
 
-  // The external subagent runs after logs+diff; give it room but bound it, same 45s budget as
-  // the other live-trigger test above.
+  // The external subagent runs after logs+diff; give it room but bound it, same budget as
+  // the other live-trigger test above (see its comment re: real, observed Bright Data
+  // latency variance — two sequential live scrapes can legitimately take well over 45s).
   const atGateOrDone = await pollUntil(
     incidentId,
     (d) => ["awaiting_approval", "resolved"].includes(d.incident.status) ||
       d.events.some((e) => e.type === "scrape_issue" && e.payload.agent !== undefined) ||
       d.events.filter((e) => e.type === "tool_call" && e.payload.agent === "external").length >= 2,
-    { timeoutMs: 45000 },
+    { timeoutMs: 150000 },
   );
 
   const externalToolCalls = atGateOrDone.events.filter((e) => e.type === "tool_call" && e.payload.agent === "external");
