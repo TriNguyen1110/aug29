@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
-import type { Incident } from "@/app/lib/types";
+import type { Incident } from "@/lib/types";
 
 function formatTs(iso: string) {
   try {

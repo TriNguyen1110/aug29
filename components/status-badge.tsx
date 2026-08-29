@@ -1,5 +1,5 @@
 import { Pill } from "@/components/ui/pill";
-import type { IncidentStatus } from "@/app/lib/types";
+import type { IncidentStatus } from "@/lib/types";
 
 // Color is reserved for incident status only (per design rule), never used as chrome
 // elsewhere in the console. resolved=green, awaiting_approval=amber, remediating/

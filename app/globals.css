@@ -44,3 +44,17 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Film-grain overlay — ported verbatim from willder's grain-background.tsx +
+   this class (color-independent: it's a WebGL noise canvas blended via
+   soft-light, not a palette token). One canvas spanning the viewport so
+   nothing tiles/seams; nearly invisible over near-black fills, visible over
+   raised surfaces/glows, per willder's original tuning notes. */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0.14;
+  mix-blend-mode: soft-light;
+}

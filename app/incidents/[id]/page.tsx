@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { EventTimeline } from "@/components/event-timeline";
+import { PendingApprovalBanner } from "@/components/pending-approval-banner";
 import { getIncidentDetail } from "@/app/lib/api";
 
 export default async function IncidentDetail({
@@ -22,6 +23,7 @@ export default async function IncidentDetail({
         <p className="text-sm text-muted">Incident not found.</p>
       ) : (
         <>
+          <PendingApprovalBanner events={detail.events} />
           <PageHeader eyebrow={`Incident · ${detail.incident.id}`} title={detail.incident.title}>
             <span className="font-mono text-xs">{detail.incident.createdAt}</span>
           </PageHeader>
