@@ -15,7 +15,7 @@ import { appendEvent, addApproval, addIncident, getApproval, updateApproval, upd
 import { publish } from "./bus";
 import { runTfTurn, parseTfJson } from "./trueforge";
 import { logQuery, gitLog, gitShow } from "./simTools";
-import { getTargets, scrapeTarget } from "./brightdata";
+import { getCachedFallback, getTargets, scrapeTarget } from "./brightdata";
 import type { ActionSpec, Alternative, Claim, Evidence, Incident, IncidentEvent } from "./types";
 
 const MODEL_SUB = "openai/gpt-5-4-mini";
@@ -150,7 +150,7 @@ async function runDiffSubagent(incidentId: string): Promise<{ result: SubagentFi
 async function runExternalSubagent(incidentId: string): Promise<{ result: SubagentFindingResult; sourceText: string }> {
   emit(incidentId, "subagent_start", {
     agent: "external",
-    task: "Check the real stripe-node release changelog for what changed in the 14.8.0->17.0.0 bump, and GitHub's status page for a broader vendor outage",
+    task: "Check the real stripe-node GitHub releases page (latest ~10 releases, first page only, full changelog body text) for any recent behavior change that could explain a checkout-service error spike, and GitHub's status page for a broader vendor outage",
     allowedTools: ["bdata_scrape"],
   });
 
@@ -180,6 +180,24 @@ async function runExternalSubagent(incidentId: string): Promise<{ result: Subage
         cause: result.cause,
         note: result.note,
       });
+
+      // Demo-safety net (BOARD.tsv item 09): the live scrape for this target failed or was too
+      // slow (a real timeout, network, or bot-wall cause -- never used to paper over a genuine
+      // clean/empty page result, since scrapeTarget only returns !ok on an actual problem). If a
+      // pre-downloaded real dataset exists for this target's cached fallback, replay it -- but
+      // honestly labeled as replayed, never presented as a fresh live scrape (CONTRACT.md
+      // fallback table).
+      const fallback = getCachedFallback(target.name);
+      if (fallback) {
+        const label = `[REPLAYED FROM CACHED SCRAPE, NOT LIVE -- ${fallback.cachePath}]`;
+        emit(incidentId, "tool_call", {
+          agent: "external",
+          tool: "bdata_scrape",
+          input: `collector=${target.collectorId} url=${target.url} (cached fallback replay, live scrape failed: ${result.cause})`,
+          output: `${label}\n${fallback.raw.slice(0, 4000)}`,
+        });
+        scraped.push({ name: target.name, url: target.url, text: `${label}\n${fallback.raw}` });
+      }
     }
   }
 
@@ -199,14 +217,20 @@ async function runExternalSubagent(incidentId: string): Promise<{ result: Subage
       "You are the EXTERNAL investigation subagent for an incident-response system, investigating a " +
       "checkout-service error spike that the diff subagent already tied to a deploy bumping the stripe-node " +
       "dependency from 14.8.0 to 17.0.0. You are given the exact text scraped live from (1) the real " +
-      "stripe-node GitHub releases page — check whether the release notes for versions between 14.8.0 and " +
-      "17.0.0 mention any behavior change (e.g. a default timeout/retry change) that would explain " +
-      "connection/timeout failures after the bump, and (2) GitHub's own status page — check for a broader " +
-      "GitHub-wide outage that could independently explain the spike. State plainly what each page actually " +
-      "shows. Return JSON: { finding: string, evidence: Evidence[] }. Every evidence.excerpt MUST be a " +
-      "literal, verbatim substring copied character-for-character from the scraped text — never paraphrase " +
-      "or invent a line. evidence.source must be \"external\". If a page is clean/irrelevant, return " +
-      "evidence: [] for that part and say so explicitly in finding rather than asserting a cause.",
+      "stripe-node GitHub releases page — this extraction covers the version, title, and full changelog body " +
+      "text of only the latest ~10 releases on the first page (no pagination), so it may or may not still " +
+      "include the exact 14.8.0->17.0.0 range depending on how many releases have shipped since; check " +
+      "whatever release notes you do have for any behavior change (e.g. a default timeout/retry change) that " +
+      "would explain connection/timeout failures after a stripe-node bump, and (2) GitHub's own status page — " +
+      "check for a broader GitHub-wide outage that could independently explain the spike. State plainly what " +
+      "each page actually shows. Return JSON: { finding: string, evidence: Evidence[] }. Every " +
+      "evidence.excerpt MUST be a literal, verbatim substring copied character-for-character from the scraped " +
+      "text — never paraphrase or invent a line. evidence.source must be \"external\". If a page is " +
+      "clean/irrelevant, or the exact version range isn't covered by these latest releases, return " +
+      "evidence: [] for that part and say so explicitly in finding rather than asserting a cause. If a " +
+      "source's text block starts with \"[REPLAYED FROM CACHED SCRAPE, NOT LIVE ...]\", that source is real " +
+      "historical data but was not fetched live for this run -- you must say so explicitly in finding " +
+      "(e.g. \"from a cached scrape, not live\") rather than presenting it as freshly scraped.",
     userMessage: combined.slice(0, 12000),
     jsonSchema: findingSchema,
     jsonSchemaName: "external_finding",

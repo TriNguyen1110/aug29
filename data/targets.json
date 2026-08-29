@@ -1,8 +1,8 @@
 [
   {
     "name": "stripe_node_releases",
-    "url": "https://github.com/stripe/stripe-node/releases.atom",
-    "collectorId": "c_mtetthp0wv30iuqv6"
+    "url": "https://github.com/stripe/stripe-node/releases",
+    "collectorId": "c_mteuv35a2e1t4fqzsc"
   },
   {
     "name": "github_status",

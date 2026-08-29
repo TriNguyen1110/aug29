@@ -7,7 +7,7 @@
 // of silently treating it as "no external evidence" (CONTRACT.md rule + fallback table).
 
 import { execFile } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import targets from "@/data/targets.json";
 
@@ -19,6 +19,25 @@ export type ScrapeTarget = {
 
 export function getTargets(): ScrapeTarget[] {
   return targets as ScrapeTarget[];
+}
+
+// Demo-safety cached fallback (BOARD.tsv item 09). The OLD stripe-node collector
+// (c_mtet3buh21kq1tld2u, pointed at the plain HTML releases page) genuinely completed real
+// runs -- 711/711/708/674/260 real records, 100% success -- it's just slow (~21min, because it
+// paginates the entire ~783-page release history) rather than broken. That's too slow to gate a
+// live demo on, so a completed run's output is downloaded once and cached here as a legitimate
+// fallback per CONTRACT.md's fallback table ("Bright Data scrape target itself is unreachable /
+// impractically slow -> replay the last cached response from ./data/raw/, label it clearly as
+// replayed, never fabricate a fresh excerpt"). Only used if the live scrape for that target
+// fails or times out -- never preferred over a real live result.
+const FALLBACK_CACHE_PATH: Record<string, string> = {
+  stripe_node_releases: join(process.cwd(), "data", "raw", "stripe_node_releases.cached-fallback.json"),
+};
+
+export function getCachedFallback(targetName: string): { raw: string; cachePath: string } | null {
+  const path = FALLBACK_CACHE_PATH[targetName];
+  if (!path || !existsSync(path)) return null;
+  return { raw: readFileSync(path, "utf8"), cachePath: path };
 }
 
 // 150s: bounded, not unbounded (backend-agent rule: cap retries/runtime on every harness
