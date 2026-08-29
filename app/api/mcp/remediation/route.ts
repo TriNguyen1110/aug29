@@ -15,6 +15,8 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { executeRemediation } from "@/lib/remediation";
+import { getApproval } from "@/lib/store";
+import type { ActionSpec } from "@/lib/types";
 
 const globalKey = "__incidentAgentMcpRemediationSessions__" as const;
 
@@ -47,12 +49,48 @@ function buildServer(): McpServer {
       },
     },
     async (args) => {
+      // SECURITY BOUNDARY (BOARD.tsv item 19 / CONTRACT.md rule 2): this MCP endpoint is
+      // its own exposed HTTP route — nothing stops a caller from hitting it directly,
+      // bypassing TrueForge's session-level tool.approval_required pause entirely.
+      // TrueForge's gate is not the enforcement; this check is. Never execute a
+      // caller-supplied type/target/params without re-verifying them against the exact
+      // stored, approved Approval first — never trust the schema's incidentId/approvalId
+      // fields as identity proof on their own.
+      const approval = getApproval(args.approvalId);
+      if (!approval || approval.incidentId !== args.incidentId) {
+        throw new Error(
+          `execute_remediation refused: no approval ${args.approvalId} found on incident ${args.incidentId}`
+        );
+      }
+      if (approval.status !== "approved") {
+        throw new Error(
+          `execute_remediation refused: approval ${args.approvalId} is "${approval.status}", not "approved"`
+        );
+      }
+      if (!actionSpecMatches(approval.actionSpec, { type: args.type, target: args.target, params: args.params })) {
+        throw new Error(
+          `execute_remediation refused: called action (${JSON.stringify({ type: args.type, target: args.target, params: args.params })}) ` +
+            `does not exactly match the approved ActionSpec (${JSON.stringify(approval.actionSpec)})`
+        );
+      }
+
       const result = executeRemediation({ type: args.type, target: args.target, params: args.params });
       return { content: [{ type: "text", text: result }] };
     }
   );
 
   return server;
+}
+
+// Deep-equal check, not a subset/loose check — every field of the stored, approved
+// ActionSpec must match the caller-supplied action exactly (CONTRACT.md rule 2: "execute
+// only what was approved... never re-derive at execution time").
+function actionSpecMatches(approved: ActionSpec, called: ActionSpec): boolean {
+  if (approved.type !== called.type || approved.target !== called.target) return false;
+  const approvedKeys = Object.keys(approved.params).sort();
+  const calledKeys = Object.keys(called.params).sort();
+  if (approvedKeys.length !== calledKeys.length) return false;
+  return approvedKeys.every((k, i) => k === calledKeys[i] && approved.params[k] === called.params[k]);
 }
 
 async function createNewSession(body: unknown): Promise<WebStandardStreamableHTTPServerTransport> {

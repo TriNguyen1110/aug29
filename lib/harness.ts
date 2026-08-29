@@ -463,6 +463,21 @@ function waitForClarification(incidentId: string): Promise<string> {
 
 // --- main run -------------------------------------------------------------------------
 
+// Item 18 (BOARD.tsv): the trigger's `scenario` text was previously display-only — every
+// live run silently investigated the same fixed checkout/Stripe fixture (lib/simTools.ts)
+// no matter what was typed, which is worse than being honest about the limitation. Given
+// remaining build time, the fix taken is option (b) from item 18's note: keep the single
+// real fixture (building out several distinct, fully-wired named scenarios was too large
+// for the time left), but make the mismatch honest and visible on the timeline instead of
+// silent. CONTRACT.md's event shapes are frozen, so this reuses the existing
+// "summary_posted" type rather than inventing a new one.
+const CHECKOUT_SCENARIO_KEYWORDS = ["checkout", "stripe", "payment"];
+
+function scenarioMatchesWiredFixture(scenario: string): boolean {
+  const lower = scenario.toLowerCase();
+  return CHECKOUT_SCENARIO_KEYWORDS.some((k) => lower.includes(k));
+}
+
 export async function runIncident(incidentId: string, scenario: string): Promise<void> {
   const incident: Incident = {
     id: incidentId,
@@ -471,6 +486,13 @@ export async function runIncident(incidentId: string, scenario: string): Promise
     createdAt: new Date().toISOString(),
   };
   addIncident(incident);
+
+  if (!scenarioMatchesWiredFixture(scenario)) {
+    emit(incidentId, "summary_posted", {
+      channel: "#incidents",
+      text: `Note: this build has exactly one real investigation fixture wired up — a checkout-service/Stripe error-rate spike (keywords: ${CHECKOUT_SCENARIO_KEYWORDS.join(", ")}). The trigger text "${scenario}" didn't match any of those keywords, so this run is investigating that fixed fixture anyway rather than a scenario built for what you typed — the scenario text does not yet select different real data (see BOARD.tsv item 18).`,
+    });
+  }
 
   try {
     const logs = await runLogsSubagent(incidentId);
@@ -602,13 +624,26 @@ export async function runIncident(incidentId: string, scenario: string): Promise
     updateApproval({ ...approvalRecord, status: decision === "approve" ? "approved" : "denied", resolvedAt: new Date().toISOString() });
 
     if (decision === "deny") {
-      await resumeRemediationTurn({
-        sessionId: paused.sessionId,
-        turnId: paused.turnId,
-        threadId: paused.threadId,
-        toolCallId: paused.toolCallId,
-        decision: "deny",
-      });
+      try {
+        await resumeRemediationTurn({
+          sessionId: paused.sessionId,
+          turnId: paused.turnId,
+          threadId: paused.threadId,
+          toolCallId: paused.toolCallId,
+          decision: "deny",
+        });
+      } catch (err) {
+        // Item 19 (New finding #4): the resume call throwing here left the incident
+        // stuck at "awaiting_approval" forever — revert to a truthful, non-stuck status
+        // and emit a signal distinct from a failed investigation so this doesn't read as
+        // "the run never got this far."
+        updateIncidentStatus(incidentId, "investigating");
+        emit(incidentId, "summary_posted", {
+          channel: "#incidents",
+          text: `Remediation failed: resuming the denied approval ${approvalId} threw (${(err as Error).message}). Reverted to investigating for manual follow-up — the denial itself was never confirmed to TrueForge.`,
+        });
+        return;
+      }
       emit(incidentId, "approval_denied", { approvalId });
       updateIncidentStatus(incidentId, "investigating");
       return;
@@ -620,25 +655,40 @@ export async function runIncident(incidentId: string, scenario: string): Promise
     // Execute only what was approved: resume the SAME paused TrueForge turn with "allow" —
     // the harness itself calls the gated execute_remediation tool for real at this point,
     // never let the model re-derive "what the fix should be" here (CONTRACT.md rule 2).
-    const approved = getApproval(approvalId);
-    if (!approved || approved.status !== "approved") {
-      throw new Error(`refusing to execute: approval ${approvalId} is not in approved state`);
+    try {
+      const approved = getApproval(approvalId);
+      if (!approved || approved.status !== "approved") {
+        throw new Error(`refusing to execute: approval ${approvalId} is not in approved state`);
+      }
+      const spec = approved.actionSpec;
+      const { resultText: result } = await resumeRemediationTurn({
+        sessionId: paused.sessionId,
+        turnId: paused.turnId,
+        threadId: paused.threadId,
+        toolCallId: paused.toolCallId,
+        decision: "approve",
+      });
+
+      emit(incidentId, "action_executed", { action: approved.action, actionSpec: spec, result });
+
+      const summaryText = `${scenario}: ${synthesis.rootCause} Fix applied: ${approved.action}. ${result}`;
+      emit(incidentId, "summary_posted", { channel: "#incidents", text: summaryText });
+
+      updateIncidentStatus(incidentId, "resolved");
+    } catch (err) {
+      // Item 19 (New finding #4): a throw anywhere between "remediating" and "resolved"
+      // previously left the incident stuck in the active-sounding "remediating" status
+      // forever with no distinct failure signal — indistinguishable from a still-running
+      // remediation. Revert to "investigating" (truthful: the fix was NOT confirmed
+      // applied, needs a human to look again) and say so explicitly, separately from a
+      // failed-investigation summary.
+      updateIncidentStatus(incidentId, "investigating");
+      emit(incidentId, "summary_posted", {
+        channel: "#incidents",
+        text: `Remediation failed: executing the approved action for "${scenario}" threw (${(err as Error).message}). Reverted to investigating — the approved fix was NOT confirmed applied and needs manual follow-up.`,
+      });
+      return;
     }
-    const spec = approved.actionSpec;
-    const { resultText: result } = await resumeRemediationTurn({
-      sessionId: paused.sessionId,
-      turnId: paused.turnId,
-      threadId: paused.threadId,
-      toolCallId: paused.toolCallId,
-      decision: "approve",
-    });
-
-    emit(incidentId, "action_executed", { action: approved.action, actionSpec: spec, result });
-
-    const summaryText = `${scenario}: ${synthesis.rootCause} Fix applied: ${approved.action}. ${result}`;
-    emit(incidentId, "summary_posted", { channel: "#incidents", text: summaryText });
-
-    updateIncidentStatus(incidentId, "resolved");
   } catch (err) {
     // Fail loudly into the event log rather than leaving the run silently stuck.
     emit(incidentId, "summary_posted", {
