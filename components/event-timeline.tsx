@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import { Chip } from "@/components/ui/chip";
 import { Card } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
 import { EvidenceBlock } from "@/components/evidence-block";
 import type { IncidentEvent } from "@/lib/types";
 
@@ -9,6 +13,36 @@ import type { IncidentEvent } from "@/lib/types";
 // duplicating them. `tool_call` and `subagent_result` rows are expanded to their real
 // excerpt/raw content per the original item 05 ask, not a one-line summary. `external`
 // agent tool_calls and `scrape_issue` get distinct "via Bright Data" treatment (H+0.91).
+//
+// Item 16: real-content-in-the-timeline (item 05) landed as raw excerpt/output dumped
+// straight inline, which read as a wall of data. `tool_call` input/output and long
+// `subagent_result` findings now show a short truncated preview plus a "View details"
+// trigger that opens the full, untruncated raw content in components/ui/modal.tsx — the
+// full content is still one click away, never hidden, just not dumped by default.
+
+const PREVIEW_LIMIT = 150;
+
+// Truncates to the first line or PREVIEW_LIMIT chars, whichever is shorter, so a long
+// single-line excerpt and a multi-line log dump both collapse to a readable preview.
+function truncate(text: string): { preview: string; isTruncated: boolean } {
+  const firstLine = text.split("\n")[0] ?? "";
+  const isTruncated = text.length > PREVIEW_LIMIT || text.includes("\n");
+  const preview =
+    firstLine.length > PREVIEW_LIMIT ? `${firstLine.slice(0, PREVIEW_LIMIT)}…` : isTruncated ? `${firstLine}…` : firstLine;
+  return { preview, isTruncated };
+}
+
+function ViewDetailsButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-1 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-accent underline-offset-2 hover:underline"
+    >
+      View details
+    </button>
+  );
+}
 
 const HIDDEN_TYPES = new Set<IncidentEvent["type"]>([
   "hypothesis",
@@ -83,56 +117,100 @@ function ScrapeIssueRow({ event }: { event: IncidentEvent }) {
 function ToolCallRow({ event }: { event: IncidentEvent }) {
   const p = event.payload as { agent?: string; tool?: string; input?: string; output?: string };
   const brightData = p.tool === "bdata_scrape" ? parseBrightDataInput(String(p.input ?? "")) : null;
+  const [open, setOpen] = useState(false);
+
+  const input = p.input ?? "";
+  const output = p.output ?? "";
+  const inputPreview = truncate(input);
+  const outputPreview = truncate(output);
+  const canExpand = inputPreview.isTruncated || outputPreview.isTruncated;
 
   return (
-    <Card className="p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip tone="muted">tool_call</Chip>
-        <span className="font-mono text-xs text-foreground/80">
-          {p.agent} → {p.tool}
-        </span>
-        {brightData && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-accent">
-            via Bright Data · {brightData.collectorId}
+    <>
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Chip tone="muted">tool_call</Chip>
+          <span className="font-mono text-xs text-foreground/80">
+            {p.agent} → {p.tool}
           </span>
+          {brightData && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-accent">
+              via Bright Data · {brightData.collectorId}
+            </span>
+          )}
+        </div>
+        {brightData && (
+          <p className="mt-2 truncate font-mono text-xs text-muted">{brightData.url}</p>
         )}
-      </div>
-      {brightData && (
-        <p className="mt-2 truncate font-mono text-xs text-muted">{brightData.url}</p>
+        <div className="mt-3 flex flex-col gap-2">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">input</p>
+            <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-background/60 px-3 py-2 font-mono text-xs leading-relaxed text-foreground/85">
+              {inputPreview.preview}
+            </p>
+          </div>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">output</p>
+            <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-background/60 px-3 py-2 font-mono text-xs leading-relaxed text-foreground/85">
+              {outputPreview.preview}
+            </p>
+          </div>
+        </div>
+        {canExpand && <ViewDetailsButton onClick={() => setOpen(true)} />}
+      </Card>
+      {open && (
+        <Modal title={`${p.agent} → ${p.tool}`} onClose={() => setOpen(false)} size="2xl">
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">input</p>
+              <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-background/60 px-3 py-2 font-mono text-xs leading-relaxed text-foreground/85">
+                {input}
+              </p>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">output</p>
+              <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-background/60 px-3 py-2 font-mono text-xs leading-relaxed text-foreground/85">
+                {output}
+              </p>
+            </div>
+          </div>
+        </Modal>
       )}
-      <div className="mt-3 flex flex-col gap-2">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">input</p>
-          <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-background/60 px-3 py-2 font-mono text-xs leading-relaxed text-foreground/85">
-            {p.input}
-          </p>
-        </div>
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">output</p>
-          <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-background/60 px-3 py-2 font-mono text-xs leading-relaxed text-foreground/85">
-            {p.output}
-          </p>
-        </div>
-      </div>
-    </Card>
+    </>
   );
 }
 
 function SubagentResultRow({ event }: { event: IncidentEvent }) {
   const p = event.payload as { agent?: string; finding?: string; evidence?: import("@/lib/types").Evidence[] };
+  const [open, setOpen] = useState(false);
+  const finding = p.finding ?? "";
+  const findingPreview = truncate(finding);
+
   return (
-    <Card glow="accent" className="p-4">
-      <div className="flex items-center gap-2">
-        <Chip tone="active">subagent_result</Chip>
-        <span className="font-mono text-xs text-foreground/80">{p.agent}</span>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-foreground/90">{p.finding}</p>
-      {(p.evidence?.length ?? 0) > 0 && (
-        <div className="mt-3">
-          <EvidenceBlock evidence={p.evidence ?? []} />
+    <>
+      <Card glow="accent" className="p-4">
+        <div className="flex items-center gap-2">
+          <Chip tone="active">subagent_result</Chip>
+          <span className="font-mono text-xs text-foreground/80">{p.agent}</span>
         </div>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/90">
+          {findingPreview.isTruncated ? findingPreview.preview : finding}
+        </p>
+        {findingPreview.isTruncated && <ViewDetailsButton onClick={() => setOpen(true)} />}
+        {(p.evidence?.length ?? 0) > 0 && (
+          <div className="mt-3">
+            <EvidenceBlock evidence={p.evidence ?? []} />
+          </div>
+        )}
+      </Card>
+      {open && (
+        <Modal title={`${p.agent} — finding`} onClose={() => setOpen(false)} size="xl">
+          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
+            {finding}
+          </p>
+        </Modal>
       )}
-    </Card>
+    </>
   );
 }
 
