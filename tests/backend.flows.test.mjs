@@ -255,12 +255,15 @@ test("data/targets.json + a live run use the new non-Stripe Bright Data targets,
   assert.ok(!urls.some((u) => u.includes("status.stripe.com")), "old status.stripe.com target must be removed");
   assert.ok(!urls.some((u) => u.includes("docs.stripe.com")), "old docs.stripe.com changelog target must be removed");
 
-  // stripe_node_releases must point at the .atom feed, not the plain HTML releases page (that
-  // fell into Bright Data's slow batch-mode pagination fallback and never returned, per
-  // BOARD.tsv fact row H+1.55).
-  assert.ok(
-    byName.stripe_node_releases.url.endsWith(".atom"),
-    `stripe_node_releases must target the .atom feed, got ${byName.stripe_node_releases.url}`,
+  // stripe_node_releases must point at the stripe-node releases page and use the new
+  // item-09 collector (c_mteuv35a2e1t4fqzsc), not the old KYC-blocked Stripe targets or the
+  // item-06 atom-feed collector (metadata-only). This collector is explicitly scoped to the
+  // first page / latest ~10 releases only (no pagination), so the plain (non-.atom) URL is
+  // now correct — asserting ".atom" here is stale post item-09 (BOARD.tsv H+2.0 fact row).
+  assert.equal(
+    byName.stripe_node_releases.collectorId,
+    "c_mteuv35a2e1t4fqzsc",
+    `stripe_node_releases must use item 09's fast+rich first-page collector, got ${byName.stripe_node_releases.collectorId}`,
   );
   assert.ok(
     byName.stripe_node_releases.url.includes("github.com/stripe/stripe-node/releases"),
