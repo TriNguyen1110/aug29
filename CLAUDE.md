@@ -44,6 +44,15 @@ whole demo.
 
 Real setup, not simulated — this is a judged criterion on its own track.
 
+**Standing rule: always scope a new collector's extraction to a bounded page count, never let it
+paginate freely.** An AI-generated Bright Data collector given an unscoped description (e.g. just
+a URL and "extract the releases") will default to crawling a site's *entire* paginated history —
+one collector against `stripe-node`'s plain releases page tried to walk all ~783 pages of release
+history and took ~21 minutes, unusable live. State the limit explicitly in the creation prompt:
+"first page only, do not follow pagination/'load more' links" or "the most recent 5-10 entries
+only." This is not specific to Stripe — apply it to every new collector for this build, or any
+future one.
+
 **Watch targets (external-evidence subagent), fixed for this build:**
 
 The original targets were `status.stripe.com` and `docs.stripe.com/changelog` — the direct "is it
