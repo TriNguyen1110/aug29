@@ -162,6 +162,26 @@ Fail loudly. Assert event counts are greater than zero after a trigger rather th
 warning. Keep every step idempotent and resumable — the whole pitch is that a run survives a
 refresh, so this isn't optional.
 
+**No hardcoded/canned data on the live-triggered investigation path.** The two seeded past
+incidents (item 01) are legitimately static fixtures — they exist so the list is never empty
+before a live demo run, and that's the only place static data belongs. Everything produced by a
+*live-triggered* incident — subagent findings, evidence excerpts, the hypothesis, claims,
+alternatives — must come from a real model call reasoning over real tool output (real log/diff
+fixtures, a real Bright Data scrape), never a template string standing in for one, even as a
+quick fallback. If a harness call genuinely can't be wired in time, the CONTRACT.md fallback
+table's "sequential real model calls with the same event shapes" is fine; a hardcoded/canned
+`finding`/`hypothesis`/`Evidence.excerpt` string is not — that's exactly the fabrication rule 
+the verifier's grounding checks exist to catch, and shipping it defeats the entire pitch.
+
+**Verifier journey tests must be realistic, not toy.** `tests/journeys.test.mjs` should model
+what an actual on-call engineer does with this tool, not a synthetic happy path with no
+real-world texture — e.g. the "Checkout API error rate spike" journey should read like someone
+plausibly reasoning through a real checkout outage (is it us or Stripe, what's the blast radius,
+what would I actually approve here), not a scripted click-sequence that only exists to make an
+assertion pass. Cover genuine success cases end to end (trigger → evidence → approval → resolve)
+with the same rigor as failure cases — a demo that only proves the unhappy paths work hasn't
+proven the product works.
+
 When corrected, add the rule here rather than fixing the same thing twice.
 
 ## Lessons carried over from prior builds (main-session responsibilities)
