@@ -46,20 +46,22 @@ Real setup, not simulated — this is a judged criterion on its own track.
 
 **Watch targets (external-evidence subagent), fixed for this build:**
 
-The seeded demo incident is *"Checkout API error rate spike"* — the highest-stakes, most
-instantly-relatable question that scenario raises is "is this us, or is Stripe down?" Both
-targets below answer exactly that question live, on stage, with a real scraped page as the
-receipt, instead of the agent just asserting an answer:
+The original targets were `status.stripe.com` and `docs.stripe.com/changelog` — the direct "is it
+us or Stripe" check for the seeded *"Checkout API error rate spike"* demo incident. Both are
+account-level KYC/compliance-blocked on this Bright Data account (financial-services domains
+require KYC approval; see BOARD.tsv item 06 fact rows for the real, live-verified `Forbidden`
+error) and were swapped for two real, ungated targets that play the same roles:
 
 | Target | URL | Why |
 |---|---|---|
-| Stripe status | `https://status.stripe.com/` | The direct "is it them or us" check for a checkout incident — a judge gets the stakes in one sentence. If it shows a live incident, that's the root cause, evidence-backed. If it's clean, that's equally valuable: it rules out the easy excuse and forces the hypothesis to actually explain an internal cause (ties into rule 5 — ask instead of assuming). |
-| Stripe API changelog | `https://docs.stripe.com/changelog` | Sharper than a generic dependency-release page: if Stripe shipped an API/behavior change today, that's a concrete, checkable candidate cause for a checkout-specific error spike, not just "some upstream release happened." |
+| stripe-node releases (Atom feed) | `https://github.com/stripe/stripe-node/releases.atom` | Ties directly to `lib/simTools.ts`'s diff fixture, which already claims the incident was caused by bumping `stripe-node` 14.8.0→17.0.0 — checking the real release feed for that version range is more specific evidence than a generic status page. The plain HTML `releases` page (no `.atom`) fell into Bright Data's slow batch-mode pagination fallback and never returned in testing; the Atom feed is small/unpaginated and returns fast. Known limitation: the auto-generated extraction schema currently only pulls feed metadata, not the actual per-release title/body text — the subagent honestly reports "no release-note text found" rather than fabricating a cause, which is correct behavior, just thinner evidence than ideal. |
+| GitHub status | `https://www.githubstatus.com/` | Generic "is a vendor down" signal, same role Stripe's status page played, not gated. Verified live returning real (if currently empty/"all clear") content. |
 
 Demo script this enables: trigger the checkout incident → watch the `external` subagent scrape
-both pages live → the hypothesis either cites the Stripe incident/changelog entry verbatim as
-the root cause, or explicitly states neither shows anything and the cause must be internal —
-either outcome is a concrete, evidence-backed answer to the question a judge already understands.
+both pages live → the hypothesis either cites something concrete from the stripe-node release
+feed or GitHub status as a contributing cause, or explicitly states neither shows anything useful
+and the cause must be internal — either outcome is a real, evidence-backed answer, not an
+assertion.
 
 - CLI: `npx -p @brightdata/cli`, `bdata login` once to connect the terminal to the account.
 - Create the external-evidence scraper once, keep its Collector ID (`c_*`) as a `fact` row:

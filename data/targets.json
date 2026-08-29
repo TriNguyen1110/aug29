@@ -1,12 +1,12 @@
 [
   {
-    "name": "stripe_status",
-    "url": "https://status.stripe.com/",
-    "collectorId": "c_mterqfcf11gtnha5a"
+    "name": "stripe_node_releases",
+    "url": "https://github.com/stripe/stripe-node/releases.atom",
+    "collectorId": "c_mtetthp0wv30iuqv6"
   },
   {
-    "name": "stripe_changelog",
-    "url": "https://docs.stripe.com/changelog",
-    "collectorId": "c_mterrg4ec3sh7fph7"
+    "name": "github_status",
+    "url": "https://www.githubstatus.com/",
+    "collectorId": "c_mtet3diz2olju1o1tz"
   }
 ]

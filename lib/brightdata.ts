@@ -21,7 +21,13 @@ export function getTargets(): ScrapeTarget[] {
   return targets as ScrapeTarget[];
 }
 
-const SCRAPE_TIMEOUT_MS = 90_000;
+// 150s: bounded, not unbounded (backend-agent rule: cap retries/runtime on every harness
+// call). Bumped up from an earlier 90s after observing a real, non-KYC-blocked target
+// (github.com/stripe/stripe-node/releases) fall into Bright Data's slow "batch mode"
+// pagination fallback that didn't complete within several minutes in testing — see
+// BOARD.tsv item 06 fact rows. If a scrape hits this cap it's classified "network"
+// (timeout) below and surfaces as a real, honest scrape_issue, never faked as success.
+const SCRAPE_TIMEOUT_MS = 150_000;
 const MIN_HEALTHY_LENGTH = 40; // below this, treat as empty/short per fallback table
 
 export type ScrapeResult =
@@ -57,7 +63,19 @@ export async function scrapeTarget(target: ScrapeTarget): Promise<ScrapeResult> 
   // MIN_HEALTHY_LENGTH and would otherwise be misclassified as a real, healthy scrape.
   const lower = combined.toLowerCase();
   const errorCause = ((): "selector_drift" | "bot_wall" | "rate_limit" | "network" | "unknown" | null => {
-    if (lower.includes("rate limit") || lower.includes("429")) return "rate_limit";
+    // Check rate-limit signatures before the generic bot_wall "crawler error" match below —
+    // Bright Data's real rate-limit body is `{"error":"Crawler error: ... too many
+    // requests","error_code":"rate_limit"}`, which also contains the literal text "crawler
+    // error" and would otherwise be misclassified as bot_wall (observed live on this exact
+    // target). "rate_limit" (underscore, as it appears in error_code) was previously missed
+    // by a "rate limit" (space) check.
+    if (
+      lower.includes("rate limit") ||
+      lower.includes("rate_limit") ||
+      lower.includes("too many requests") ||
+      lower.includes("429")
+    )
+      return "rate_limit";
     if (
       lower.includes("captcha") ||
       lower.includes("blocked") ||
@@ -69,6 +87,11 @@ export async function scrapeTarget(target: ScrapeTarget): Promise<ScrapeResult> 
     )
       return "bot_wall";
     if (lower.includes("timeout") || lower.includes("network") || lower.includes("econn")) return "network";
+    // code -1 is our own ETIMEDOUT sentinel from runBdata below (process killed by
+    // execFile's own timeout, e.g. Bright Data's slow "batch mode" pagination fallback on
+    // github.com/stripe/stripe-node/releases never returning within SCRAPE_TIMEOUT_MS in
+    // testing) — that's specifically a network/runtime-cap issue, not an unknown one.
+    if (code === -1) return "network";
     if (code !== 0) return "unknown";
     return null;
   })();

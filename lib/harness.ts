@@ -150,7 +150,7 @@ async function runDiffSubagent(incidentId: string): Promise<{ result: SubagentFi
 async function runExternalSubagent(incidentId: string): Promise<{ result: SubagentFindingResult; sourceText: string }> {
   emit(incidentId, "subagent_start", {
     agent: "external",
-    task: "Check Stripe's status page and API changelog for anything correlating with the checkout spike",
+    task: "Check the real stripe-node release changelog for what changed in the 14.8.0->17.0.0 bump, and GitHub's status page for a broader vendor outage",
     allowedTools: ["bdata_scrape"],
   });
 
@@ -197,14 +197,16 @@ async function runExternalSubagent(incidentId: string): Promise<{ result: Subage
     model: MODEL_SUB,
     instructions:
       "You are the EXTERNAL investigation subagent for an incident-response system, investigating a " +
-      "checkout-service error spike that may or may not correlate with Stripe. You are given the exact " +
-      "text scraped live from Stripe's status page and/or API changelog. State plainly whether either page " +
-      "shows anything (an active incident, or a recent changelog entry) that could explain a checkout API " +
-      "error spike today, or whether they're both clean/irrelevant and an internal cause must be assumed. " +
-      "Return JSON: { finding: string, evidence: Evidence[] }. Every evidence.excerpt MUST be a literal, " +
-      "verbatim substring copied character-for-character from the scraped text — never paraphrase or invent " +
-      "a line. evidence.source must be \"external\". If the pages are clean, return evidence: [] and say so " +
-      "explicitly in finding rather than asserting a cause.",
+      "checkout-service error spike that the diff subagent already tied to a deploy bumping the stripe-node " +
+      "dependency from 14.8.0 to 17.0.0. You are given the exact text scraped live from (1) the real " +
+      "stripe-node GitHub releases page — check whether the release notes for versions between 14.8.0 and " +
+      "17.0.0 mention any behavior change (e.g. a default timeout/retry change) that would explain " +
+      "connection/timeout failures after the bump, and (2) GitHub's own status page — check for a broader " +
+      "GitHub-wide outage that could independently explain the spike. State plainly what each page actually " +
+      "shows. Return JSON: { finding: string, evidence: Evidence[] }. Every evidence.excerpt MUST be a " +
+      "literal, verbatim substring copied character-for-character from the scraped text — never paraphrase " +
+      "or invent a line. evidence.source must be \"external\". If a page is clean/irrelevant, return " +
+      "evidence: [] for that part and say so explicitly in finding rather than asserting a cause.",
     userMessage: combined.slice(0, 12000),
     jsonSchema: findingSchema,
     jsonSchemaName: "external_finding",
