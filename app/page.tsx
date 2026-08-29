@@ -3,6 +3,7 @@ import { Wordmark } from "@/components/wordmark";
 import { IncidentList } from "@/components/incident-list";
 import { TriggerForm } from "@/components/trigger-form";
 import { ValueProps } from "@/components/value-props";
+import { SideGutters } from "@/components/side-gutters";
 import { getIncidents } from "@/app/lib/api";
 
 // Item 14 hero pass: adapts the reference hero-1.tsx's visual ideas (gradient title,
@@ -17,6 +18,10 @@ export default async function Home() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-20 sm:py-24">
+      {/* Item 15: fills the dead empty side margins outside this max-w-3xl column at wide
+          viewports with a faint gutter-scoped shader. Fixed-position + -z-10, so its DOM
+          position doesn't matter for layout — placed here to keep it list-page-scoped. */}
+      <SideGutters />
       <header className="relative flex flex-col gap-6 border-b border-border pb-10">
         {/* Faint grid-line backdrop, additional layer above the WebGL waves
             background (unchanged, still mounted in app/layout.tsx) — masked so it
