@@ -8,16 +8,22 @@ export default async function Home() {
   const incidents = await getIncidents();
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-6 py-14">
-      <header className="flex flex-col gap-4 border-b border-border pb-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-20 sm:py-24">
+      <header className="flex flex-col gap-5 border-b border-border pb-10">
         <Wordmark size="lg" />
-        <p className="max-w-xl text-sm leading-relaxed text-muted">
+        <p className="max-w-xl text-base leading-relaxed tracking-[-0.005em] text-muted">
           Evidence-per-claim incident response — every root cause traces to receipts, not trust.
         </p>
       </header>
-      <ValueProps />
-      <TriggerForm />
-      <IncidentList incidents={incidents} />
+      <div className="pt-10">
+        <ValueProps />
+      </div>
+      <div className="pt-14">
+        <TriggerForm />
+      </div>
+      <div className="pt-16">
+        <IncidentList incidents={incidents} />
+      </div>
     </div>
   );
 }

@@ -37,7 +37,7 @@ export function TriggerForm() {
   }
 
   return (
-    <Card glow="accent" className="flex flex-col gap-3 p-5">
+    <Card glow="accent" className="flex flex-col gap-4 p-7 sm:p-8">
       <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">
         trigger a live investigation
       </p>
@@ -49,7 +49,7 @@ export function TriggerForm() {
             if (e.key === "Enter" && !busy) trigger();
           }}
           placeholder="Checkout API error rate spike"
-          className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent/60 focus:outline-none"
+          className="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted focus:border-accent/60 focus:outline-none"
         />
         <Button variant="primary" size="md" disabled={busy} onClick={trigger} className="shrink-0">
           {busy ? "Starting…" : "Trigger investigation"}

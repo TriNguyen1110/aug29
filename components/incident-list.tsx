@@ -23,11 +23,11 @@ export function IncidentList({ incidents }: { incidents: Incident[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {incidents.map((incident) => (
         <Link key={incident.id} href={`/incidents/${incident.id}`}>
-          <Card className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:border-border-strong">
-            <div className="flex min-w-0 flex-col gap-1">
+          <Card className="flex items-center justify-between gap-4 px-6 py-5 transition-colors hover:border-border-strong">
+            <div className="flex min-w-0 flex-col gap-1.5">
               <span className="truncate text-sm font-medium text-foreground">
                 {incident.title}
               </span>
