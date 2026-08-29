@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
-import type { Incident } from "@/app/lib/types";
+import { SeededBadge } from "@/components/seeded-badge";
+import type { Incident } from "@/lib/types";
 
 function formatTs(iso: string) {
   try {
@@ -22,11 +23,11 @@ export function IncidentList({ incidents }: { incidents: Incident[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {incidents.map((incident) => (
         <Link key={incident.id} href={`/incidents/${incident.id}`}>
-          <Card className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:border-border-strong">
-            <div className="flex min-w-0 flex-col gap-1">
+          <Card className="flex items-center justify-between gap-4 px-6 py-5 transition-colors hover:border-border-strong">
+            <div className="flex min-w-0 flex-col gap-1.5">
               <span className="truncate text-sm font-medium text-foreground">
                 {incident.title}
               </span>
@@ -34,7 +35,10 @@ export function IncidentList({ incidents }: { incidents: Incident[] }) {
                 {incident.id} · {formatTs(incident.createdAt)}
               </span>
             </div>
-            <StatusBadge status={incident.status} />
+            <div className="flex shrink-0 items-center gap-2">
+              <SeededBadge incidentId={incident.id} />
+              <StatusBadge status={incident.status} />
+            </div>
           </Card>
         </Link>
       ))}

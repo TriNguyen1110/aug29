@@ -42,7 +42,7 @@ function seedAuthIncident(): void {
 
   const incident: Incident = {
     id: incidentId,
-    title: "Auth service 500 spike after deploy",
+    title: "Case 1: Auth service 500 spike after a bad deploy",
     status: "resolved",
     createdAt: t(0),
   };
@@ -301,7 +301,7 @@ function seedImageUploadIncident(): void {
 
   const incident: Incident = {
     id: incidentId,
-    title: "Image upload latency regression",
+    title: "Case 2: Image upload latency regression",
     status: "resolved",
     createdAt: t(0),
   };

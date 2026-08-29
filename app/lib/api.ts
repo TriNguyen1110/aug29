@@ -1,4 +1,4 @@
-import type { Incident, IncidentEvent } from "./types";
+import type { Incident, IncidentEvent } from "@/lib/types";
 
 // Fetch helpers against CONTRACT.md's documented API shapes (GET /api/incidents,
 // GET /api/incidents/:id). As of this build, no backend `fact` row has been posted

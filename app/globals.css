@@ -44,3 +44,81 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Wordmark treatment — the one deliberate brand moment in an otherwise plain
+   console (2026-08-29 "no visual brand" correction), corrected same-day to
+   drop the gradient-fill version per "use less gradient in the UI": solid
+   foreground text + an indigo glow behind it, not a color-gradient fill. */
+.text-wordmark-glow {
+  color: var(--foreground);
+  text-shadow: 0 0 24px rgba(88, 101, 242, 0.55), 0 0 6px rgba(88, 101, 242, 0.35);
+}
+
+/* Radar sweep ring behind the wordmark mark — "detects incidents" as a live
+   visual idea, not just a static logo. */
+@keyframes radar-ping {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.65;
+  }
+  70%,
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+.animate-radar-ping {
+  animation: radar-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-radar-ping {
+    animation: none;
+  }
+}
+
+/* Hero entrance animation (item 14) — subtle fade-in for the eyebrow/title, fade-up
+   (slight rise + fade) for the subtitle/value-props, applied once on mount. Kept as
+   plain keyframes here rather than pulling in tw-animate-css, per the build's
+   "no new dependencies unless one saves 30+ minutes" rule. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-hero-fade-in {
+  animation: fade-in 0.7s ease-out both;
+}
+.animate-hero-fade-up {
+  animation: fade-up 0.7s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-fade-in,
+  .animate-hero-fade-up {
+    animation: none;
+  }
+}
+
+/* Hero grid backdrop (item 14) — faint grid-line texture behind the hero header only,
+   layered above the WebGL waves background (which stays mounted, unchanged) and below
+   all hero text. Masked so it fades out toward the edges instead of hard-cutting. */
+.hero-grid-backdrop {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 3.5rem 3rem;
+  -webkit-mask-image: radial-gradient(ellipse 75% 60% at 50% 0%, #000 55%, transparent 100%);
+  mask-image: radial-gradient(ellipse 75% 60% at 50% 0%, #000 55%, transparent 100%);
+}

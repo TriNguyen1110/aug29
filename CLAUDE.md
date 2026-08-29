@@ -44,22 +44,33 @@ whole demo.
 
 Real setup, not simulated — this is a judged criterion on its own track.
 
+**Standing rule: always scope a new collector's extraction to a bounded page count, never let it
+paginate freely.** An AI-generated Bright Data collector given an unscoped description (e.g. just
+a URL and "extract the releases") will default to crawling a site's *entire* paginated history —
+one collector against `stripe-node`'s plain releases page tried to walk all ~783 pages of release
+history and took ~21 minutes, unusable live. State the limit explicitly in the creation prompt:
+"first page only, do not follow pagination/'load more' links" or "the most recent 5-10 entries
+only." This is not specific to Stripe — apply it to every new collector for this build, or any
+future one.
+
 **Watch targets (external-evidence subagent), fixed for this build:**
 
-The seeded demo incident is *"Checkout API error rate spike"* — the highest-stakes, most
-instantly-relatable question that scenario raises is "is this us, or is Stripe down?" Both
-targets below answer exactly that question live, on stage, with a real scraped page as the
-receipt, instead of the agent just asserting an answer:
+The original targets were `status.stripe.com` and `docs.stripe.com/changelog` — the direct "is it
+us or Stripe" check for the seeded *"Checkout API error rate spike"* demo incident. Both are
+account-level KYC/compliance-blocked on this Bright Data account (financial-services domains
+require KYC approval; see BOARD.tsv item 06 fact rows for the real, live-verified `Forbidden`
+error) and were swapped for two real, ungated targets that play the same roles:
 
 | Target | URL | Why |
 |---|---|---|
-| Stripe status | `https://status.stripe.com/` | The direct "is it them or us" check for a checkout incident — a judge gets the stakes in one sentence. If it shows a live incident, that's the root cause, evidence-backed. If it's clean, that's equally valuable: it rules out the easy excuse and forces the hypothesis to actually explain an internal cause (ties into rule 5 — ask instead of assuming). |
-| Stripe API changelog | `https://docs.stripe.com/changelog` | Sharper than a generic dependency-release page: if Stripe shipped an API/behavior change today, that's a concrete, checkable candidate cause for a checkout-specific error spike, not just "some upstream release happened." |
+| stripe-node releases | `https://github.com/stripe/stripe-node/releases` (Collector `c_mteuv35a2e1t4fqzsc`, scoped to the first page only, no pagination — see the standing rule above) | Ties directly to `lib/simTools.ts`'s diff fixture, which already claims the incident was caused by bumping `stripe-node` 14.8.0→17.0.0. Unlike the earlier Atom-feed collector, this one returns real, substantial changelog body text (not metadata-only) in ~8s — a strict upgrade. A 711-record cached dataset from an earlier, slower full-history collector (`data/raw/stripe_node_releases.cached-fallback.json`) is kept as an honestly-labeled fallback if a live scrape ever fails/times out. |
+| GitHub status | `https://www.githubstatus.com/` | Generic "is a vendor down" signal, same role Stripe's status page played, not gated. Verified live returning real (if currently empty/"all clear") content. |
 
 Demo script this enables: trigger the checkout incident → watch the `external` subagent scrape
-both pages live → the hypothesis either cites the Stripe incident/changelog entry verbatim as
-the root cause, or explicitly states neither shows anything and the cause must be internal —
-either outcome is a concrete, evidence-backed answer to the question a judge already understands.
+both pages live → the hypothesis either cites something concrete from the stripe-node release
+feed or GitHub status as a contributing cause, or explicitly states neither shows anything useful
+and the cause must be internal — either outcome is a real, evidence-backed answer, not an
+assertion.
 
 - CLI: `npx -p @brightdata/cli`, `bdata login` once to connect the terminal to the account.
 - Create the external-evidence scraper once, keep its Collector ID (`c_*`) as a `fact` row:
@@ -78,13 +89,23 @@ either outcome is a concrete, evidence-backed answer to the question a judge alr
 ## Qodo (required for the Code Quality track)
 
 - One team member with GitHub admin installs the integration once: Qodo → Integrations → SaaS →
-  GitHub → Add installation → authorize this repo.
+  GitHub → Add installation → authorize this repo. (Done for this repo.)
 - Every non-trivial change goes through a PR, not a direct push to `main` — a direct push doesn't
   count as reviewed. Qodo auto-reviews the PR; comment `/agentic_review` if it doesn't fire.
 - Address High-severity findings before merging; dismiss anything else with a one-line reason in
   the PR thread.
 - Before submission, add a "Qodo Code Review Evidence" section to the README with a merged PR
   link and 1-2 lines on what Qodo caught and how it was addressed.
+
+**Responsibility split — two separate gates, both required before `main`:** the `verifier`
+agent's `done` verdict on BOARD.tsv is an *internal correctness* gate (DATA/SCREEN checks,
+grounding, journeys) — it has nothing to do with Qodo and doesn't open or read PRs itself.
+**Qodo review is a separate, additional gate**, main-session's job: push the feature branch, open
+the PR, wait for/trigger Qodo (`gh pr comment <PR> --body "/agentic_review"` if it doesn't fire on
+its own), read its findings (`gh api` or `gh pr view --comments`), address High-severity ones
+(dispatch the owning builder with the specific finding, same as a verifier kickback) or dismiss
+others with a one-line reason, *then* merge to `main`. Both gates must pass — verifier `done` is
+necessary but not sufficient for merge.
 
 ## Commands
 
@@ -161,6 +182,10 @@ Run the `verifier` agent before anything goes on screen or into the live demo.
 Fail loudly. Assert event counts are greater than zero after a trigger rather than logging a
 warning. Keep every step idempotent and resumable — the whole pitch is that a run survives a
 refresh, so this isn't optional.
+
+**Mobile is explicitly out of scope (2026-08-29 correction).** The deliverable is a desktop demo
+video, not a responsive product — don't spend agent/verifier time on 390px/mobile-viewport
+checks or fixes. Desktop only (1440x900 / 1920x1080).
 
 **No hardcoded/canned data on the live-triggered investigation path.** The two seeded past
 incidents (item 01) are legitimately static fixtures — they exist so the list is never empty

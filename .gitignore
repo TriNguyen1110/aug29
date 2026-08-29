@@ -1,7 +1,14 @@
 node_modules/
 .next/
 dist/
-data/raw/
+# data/raw/ is a runtime cache dir, ignore its contents (not the dir itself - a trailing-slash
+# "data/raw/" pattern would exclude the directory too, and git can't re-include a file whose
+# parent directory is excluded).
+data/raw/*
+# Qodo finding #7: the one approved, committed fallback dataset is an intentional exception to
+# the runtime-cache ignore above — without it, a fresh clone/deploy can never use the documented
+# Bright Data outage fallback (CONTRACT.md's fallback table).
+!data/raw/stripe_node_releases.cached-fallback.json
 *.db
 *.sqlite
 *.tsbuildinfo

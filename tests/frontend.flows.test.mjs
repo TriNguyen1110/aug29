@@ -50,8 +50,8 @@ test("incident list (/) renders real seeded incidents, no errors, desktop", asyn
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(failedRequests, []);
-  assert.match(bodyText, /Auth service 500 spike after deploy/);
-  assert.match(bodyText, /Image upload latency regression/);
+  assert.match(bodyText, /Case 1: Auth service 500 spike after a bad deploy/);
+  assert.match(bodyText, /Case 2: Image upload latency regression/);
   assert.match(bodyText, /inc_auth500/);
   assert.match(bodyText, /inc_imgupload/);
   await page.close();
@@ -66,7 +66,7 @@ test("incident list (/) renders on a narrow/mobile viewport with no errors", asy
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(failedRequests, []);
-  assert.match(bodyText, /Auth service 500 spike after deploy/);
+  assert.match(bodyText, /Case 1: Auth service 500 spike after a bad deploy/);
   await page.close();
 });
 
@@ -79,12 +79,29 @@ test("incident detail (/incidents/inc_auth500) renders live timeline from real A
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(failedRequests, []);
   // Real event content from the seeded run, not an empty state or error boundary.
+  // hypothesis/approval_requested render as dedicated cards (item 04), not generic
+  // uppercase-event-type chips — assert on the real card content instead. Item 05 moved
+  // HypothesisCard/AlternativesPanel prose behind the non-default "Evidence & Hypothesis"
+  // tab, but GatePanel's ApprovalCard (claims/action/alternatives) stays always-visible
+  // above the tabs per the hard "never hidden behind a tab" requirement — assert against
+  // that on the default (Timeline) tab, then click into the other tab to confirm the
+  // hypothesis content is really there too.
   assert.match(bodyText, /SUBAGENT_START/);
   assert.match(bodyText, /TOOL_CALL/);
-  assert.match(bodyText, /HYPOTHESIS/);
-  assert.match(bodyText, /APPROVAL_REQUESTED/);
+  assert.match(bodyText, /RECOMMENDED ACTION/); // ApprovalCard label, always visible above tabs
+  assert.match(bodyText, /Roll back commit a1b2c3d on auth-service/); // real seeded approval action
+  assert.match(bodyText, /ALTERNATIVES/); // AlternativesPanel, inline not behind a click (copy trimmed item 08)
+  assert.match(bodyText, /SessionValidator/); // ApprovalCard claim text, real seeded evidence
   assert.match(bodyText, /ACTION_EXECUTED/);
   assert.doesNotMatch(bodyText, /Incident not found/);
+
+  // Evidence & Hypothesis tab: hypothesis content is real, just not default-mounted.
+  await page.click('text="Evidence & Hypothesis"');
+  await page.waitForTimeout(300);
+  const evidenceTabText = await page.evaluate(() => document.body.innerText);
+  assert.match(evidenceTabText, /ROOT CAUSE/); // HypothesisCard label
+  assert.match(evidenceTabText, /SessionValidator/); // real seeded hypothesis rootCause text
+
   await page.close();
 });
 
@@ -97,7 +114,11 @@ test("incident detail (/incidents/inc_imgupload) renders clarification round-tri
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(failedRequests, []);
-  assert.match(bodyText, /CLARIFICATION_REQUESTED/);
-  assert.match(bodyText, /CLARIFICATION_PROVIDED/);
+  // clarification_requested/provided fold into ClarificationCard (item 04), not
+  // generic uppercase-event-type chips — assert on the real dedicated-card content.
+  assert.match(bodyText, /CLARIFICATION RESOLVED/); // ClarificationCard, answered state
+  assert.match(bodyText, /AGENT IS ASKING/);
+  assert.match(bodyText, /ON-CALL ANSWERED/);
+  assert.match(bodyText, /nightly thumbnail-regeneration batch job/); // real seeded answer text
   await page.close();
 });

@@ -11,15 +11,15 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="border-b border-border pb-6">
-      <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted">
+    <header className="border-b border-border pb-10">
+      <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-muted">
         {eyebrow}
       </p>
-      <h1 className="text-2xl font-semibold leading-tight tracking-[-0.01em] text-foreground">
+      <h1 className="text-3xl font-semibold leading-tight tracking-[-0.015em] text-foreground">
         {title}
       </h1>
       {children && (
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">{children}</p>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">{children}</p>
       )}
     </header>
   );

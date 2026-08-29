@@ -1,0 +1,12 @@
+[
+  {
+    "name": "stripe_node_releases",
+    "url": "https://github.com/stripe/stripe-node/releases",
+    "collectorId": "c_mteuv35a2e1t4fqzsc"
+  },
+  {
+    "name": "github_status",
+    "url": "https://www.githubstatus.com/",
+    "collectorId": "c_mtet3diz2olju1o1tz"
+  }
+]

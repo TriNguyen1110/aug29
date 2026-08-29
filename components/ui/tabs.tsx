@@ -2,7 +2,7 @@
 
 // Reusable controlled tabs — retheme of willder's tabs.tsx: rounded-md segmented
 // track instead of rounded-full, accent-tinted active segment instead of plain white.
-export type TabItem = { key: string; label: string };
+export type TabItem = { key: string; label: string; icon?: React.ReactNode };
 
 export function Tabs({
   items,
@@ -21,12 +21,13 @@ export function Tabs({
         <button
           key={it.key}
           onClick={() => onChange(it.key)}
-          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+          className={`inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
             value === it.key
               ? "bg-accent/15 text-foreground"
               : "text-muted hover:text-foreground/80"
           }`}
         >
+          {it.icon}
           {it.label}
         </button>
       ))}
