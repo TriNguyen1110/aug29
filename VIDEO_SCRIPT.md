@@ -7,10 +7,10 @@ on page loads.
 ## 1. About the project (0:00–0:25)
 
 "It's 3am. Checkout's throwing errors. This is for the on-call engineer holding the phone —
-whatever pages you already, pages this too. It checks three things, every time: the real logs,
-the real code that changed, and — live — whether a vendor is actually down. A dashboard just
-hands you that data and you connect the dots. Snitch connects them for you, and hands you one
-claim to approve or deny — not a wall of logs to read at 3am."
+whatever pages you already, pages this too. It checks three things, every time: the logs, the
+code that changed, and — live — whether a vendor is actually down. A dashboard just hands you
+that data and you connect the dots. Snitch connects them for you, and hands you one claim to
+approve or deny — not a wall of logs to read at 3am."
 
 ## 2. Tech stack and architecture (0:20–0:50)
 
