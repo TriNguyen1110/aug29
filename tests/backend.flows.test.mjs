@@ -59,13 +59,19 @@ test("GET /api/incidents returns seeded list, most-recent-first, matching Incide
   const incidents = await res.json();
 
   assert.ok(Array.isArray(incidents));
-  assert.ok(incidents.length >= 2, "seed data must produce at least 2 incidents");
+  assert.ok(incidents.length >= 3, "seed data must produce at least 3 incidents (item 20: Case 1/2/3)");
 
   for (const incident of incidents) assertIncidentShape(incident);
 
-  const ids = incidents.map((i) => i.id);
-  assert.ok(ids.includes("inc_auth500"), "seeded incident inc_auth500 must be present");
-  assert.ok(ids.includes("inc_imgupload"), "seeded incident inc_imgupload must be present");
+  const byId = Object.fromEntries(incidents.map((i) => [i.id, i]));
+  assert.ok(byId.inc_auth500, "seeded incident inc_auth500 must be present");
+  assert.ok(byId.inc_imgupload, "seeded incident inc_imgupload must be present");
+  assert.ok(byId.inc_sendgrid410, "seeded incident inc_sendgrid410 (Case 3) must be present");
+
+  // Item 20: seeded titles use the "Case N: <description>" format for demo narration.
+  assert.match(byId.inc_auth500.title, /^Case 1: /, "inc_auth500 title must be Case 1: ...");
+  assert.match(byId.inc_imgupload.title, /^Case 2: /, "inc_imgupload title must be Case 2: ...");
+  assert.match(byId.inc_sendgrid410.title, /^Case 3: /, "inc_sendgrid410 title must be Case 3: ...");
 
   for (let i = 1; i < incidents.length; i++) {
     const prev = Date.parse(incidents[i - 1].createdAt);
@@ -115,6 +121,49 @@ test("GET /api/incidents/inc_imgupload returns { incident, events } with 16 even
     assertEventShape(event);
     assert.equal(event.incidentId, "inc_imgupload");
   }
+});
+
+// Item 20 (DATA): Case 3 seeded incident — external/Bright Data evidence is the PRIMARY
+// root-cause driver (not diff), unlike Case 1/2. Confirms the full event history is present
+// and that the hypothesis's claims actually lean on "external" evidence, not just log/diff.
+test("GET /api/incidents/inc_sendgrid410 (Case 3) returns { incident, events } with 16 events, external evidence as primary driver", async () => {
+  const res = await fetch(`${BASE_URL}/api/incidents/inc_sendgrid410`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+
+  assert.deepEqual(Object.keys(body).sort(), ["events", "incident"]);
+  assertIncidentShape(body.incident);
+  assert.equal(body.incident.id, "inc_sendgrid410");
+  assert.equal(body.incident.status, "resolved");
+  assert.match(body.incident.title, /^Case 3: /);
+
+  assert.ok(Array.isArray(body.events));
+  assert.equal(body.events.length, 16, "Case 3 fixture has 16 events, same rigor as Case 1/2");
+  for (const event of body.events) {
+    assertEventShape(event);
+    assert.equal(event.incidentId, "inc_sendgrid410");
+  }
+
+  const hypothesis = body.events.find((e) => e.type === "hypothesis");
+  assert.ok(hypothesis, "Case 3 must have a real hypothesis event");
+  const claims = hypothesis.payload.claims;
+  assert.ok(Array.isArray(claims) && claims.length > 0);
+
+  // The differentiator this fixture exists to prove: at least one claim's evidence is
+  // sourced from "external" (the Bright Data subagent), and it must come first among the
+  // evidence-backed claims — i.e. external evidence is the primary driver, not a footnote
+  // after diff/logs.
+  const claimsWithEvidence = claims.filter((c) => c.evidence.length > 0);
+  assert.ok(claimsWithEvidence.length > 0, "Case 3 hypothesis must have at least one evidence-backed claim");
+  assert.equal(
+    claimsWithEvidence[0].evidence[0].source,
+    "external",
+    "Case 3's first evidence-backed claim must be sourced from the external/Bright Data subagent, not diff/log",
+  );
+  assert.ok(
+    claims.some((c) => c.evidence.some((e) => e.source === "diff")) === false,
+    "Case 3 deliberately has no diff-sourced evidence — diff comes back inconclusive (empty evidence), external is what actually finds the cause",
+  );
 });
 
 test("GET /api/incidents/:id 404s with an error body for an unknown id", async () => {
