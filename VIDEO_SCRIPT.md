@@ -9,17 +9,19 @@ on page loads.
 "It's 3am. Checkout's throwing errors. This is for the on-call engineer holding the phone —
 whatever pages you already, pages this too. It checks three things, every time: the logs, the
 code that changed, and — live — whether a vendor is actually down. A dashboard just hands you
-that data and you connect the dots. Snitch connects them for you, and hands you one claim to
-approve or deny — not a wall of logs to read at 3am."
+that data and you connect the dots. Snitch connects them for you, and hands you one solution to
+approve or deny instead of a wall of logs to read at 3am."
 
 ## 2. Tech stack and architecture (0:20–0:50)
 
 Switch to the GitHub repo tab.
 
-"It runs on TrueForge, the real harness — three subagents run as real TrueForge sessions, and
-when it's time to act, TrueForge itself pauses that exact tool call and waits for me. That
-pause is verified independently, not something we faked. OpenAI does the reasoning. Qodo
-reviewed this exact PR before it shipped, and caught a real security gap, which we fixed."
+"It runs on TrueForge, the real harness. Three subagents run as real TrueForge sessions — logs,
+diff, and a live Bright Data check. When it's time to act, TrueForge itself pauses that exact
+tool call and waits for a human decision — verified independently, not faked. OpenAI reasons
+over every call. It's one Next.js app, frontend and backend together, no separate database —
+state lives in memory for this demo. Qodo reviewed this exact PR before it shipped and caught a
+real security gap, which we fixed."
 
 ## 3. Demo (0:50–2:30)
 
