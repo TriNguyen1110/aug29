@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { GrainBackground } from "@/components/grain-background";
+import { WavesBackground } from "@/components/waves-background";
 import { SponsorStrip } from "@/components/sponsor-strip";
 import "./globals.css";
 
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <GrainBackground />
+        <WavesBackground />
         <div className="flex flex-1 flex-col">{children}</div>
         <SponsorStrip />
       </body>
