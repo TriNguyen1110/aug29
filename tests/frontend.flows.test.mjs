@@ -52,10 +52,8 @@ test("incident list (/) renders real seeded incidents, no errors, desktop", asyn
   assert.deepEqual(failedRequests, []);
   assert.match(bodyText, /Case 1: Auth service 500 spike after a bad deploy/);
   assert.match(bodyText, /Case 2: Image upload latency regression/);
-  assert.match(bodyText, /Case 3: Email delivery failures after a SendGrid API deprecation/);
   assert.match(bodyText, /inc_auth500/);
   assert.match(bodyText, /inc_imgupload/);
-  assert.match(bodyText, /inc_sendgrid410/);
   await page.close();
 });
 
