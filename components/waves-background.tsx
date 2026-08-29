@@ -295,7 +295,10 @@ const COLORS = new Float32Array([
   0, 0, 0,
 ]);
 const SHAPE = [1.32, 0.49, 0.84, 0.01] as const; // scale, intensity, paramA, warp
-const SURFACE = [1.73, 1.08, 0.07, 2.0] as const; // detail, contrast, brightness, saturation
+const SURFACE = [1.73, 1.85, -0.03, 2.0] as const; // detail, contrast, brightness, saturation
+// Contrast bumped (1.08 -> 1.85) and brightness dropped to slightly negative so the wave
+// crests pop brighter while the base stays dark - opacity alone (tried earlier) just greys
+// the whole canvas uniformly instead of making the animation itself clearer.
 const FINISH = [2.27, 0.0, 0.04, 0.35] as const; // hue, vignette, blur, grain
 const TRANSFORM = [4984.0, 3.37, 0.4, 1.0] as const; // seed, rotate, drift, oklab
 const OFFSET = [-0.13, 0.05] as const; // u_space.xy
@@ -444,7 +447,7 @@ export function WavesBackground() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 h-full w-full opacity-[0.11]"
+      className="pointer-events-none fixed inset-0 -z-10 h-full w-full opacity-[0.075]"
     />
   );
 }
