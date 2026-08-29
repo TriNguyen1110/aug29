@@ -61,7 +61,17 @@ async function check(viewport, name) {
     // close via the X button
     await page.getByRole("button", { name: "Close" }).click();
     await page.waitForTimeout(200);
-    const stillVisible = await modal.isVisible().catch(() => false);
+    // Don't collapse a real isVisible() failure into the same `false` that means "closed
+    // correctly" (Qodo finding #6) — surface it as its own distinct error instead.
+    let stillVisible;
+    try {
+      stillVisible = await modal.isVisible();
+    } catch (err) {
+      errors.push(`${name}: modal.isVisible() check itself failed: ${err.message}`);
+      failed = true;
+      await page.close();
+      return;
+    }
     if (stillVisible) {
       errors.push(`${name}: modal did not close after clicking Close`);
       failed = true;
