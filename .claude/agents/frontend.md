@@ -78,23 +78,18 @@ level up — copy the ones that fit (button, card, chip/pill for status badges, 
 approval gate, tabs, toast, page-header) into this repo's `components/ui/`. Pulling in
 already-built, already-debugged components is faster than hand-styling from scratch in six hours.
 
-**But re-theme them — do not carry over willder's brand.** willder's palette (`app/globals.css`)
-is a warm editorial brand: marble/gold/ember/brick/ink, pill-shaped glowing buttons, film grain,
-gradient-pan backgrounds — built for a consumer product, and it would read as visually mismatched
-on an ops console (and as "reskinned someone else's product" if a judge recognizes the shapes).
-Keep the component *structure and props* (variant/size APIs, the Card/Modal/Tabs shape), replace
-the *tokens*:
+**Recolor them — do not strip their visual craft.** willder's palette (`app/globals.css`) is a
+warm editorial brand: marble/gold/ember/brick/ink. Keep every bit of the *craft* — the pill
+shapes, the button glow/shadow, film grain, gradient-pan backgrounds, depth — none of that is the
+problem. Only the *color tokens* are wrong for an ops console. Swap the hex values feeding those
+same effects to a cooler, dev-friendly set:
 
-- Drop `grain-background.tsx`, `silk-shader-background.tsx`, `solar-glow`, `.bg-gradient-pan`,
-  and the button glow shadows entirely — decorative, wrong register for a dev tool.
-- New palette, restrained (2-3 colors doing real work, not decoration, per the Linear reference
-  above): a near-black background (`#0a0a0c`), a slightly-lifted surface (`#141416`), a single
-  neutral accent for primary actions (e.g. `#5865f2` indigo or `#3b82f6` blue — pick one, use it
-  for buttons/links/focus only), and reserve color for incident *status*, not chrome: green for
-  resolved, amber for awaiting_approval, red for a blocking/failed state. Borders as low-opacity
-  white (`rgba(255,255,255,.08)`) instead of warm gunpowder tones.
-- Square/rounded-md corners (`rounded-md`/`rounded-lg`), not willder's rounded-full pill buttons
-  — pills read as consumer/marketing, sharper corners read as tooling.
+- Same near-black ink-style background, same surface elevation, same shadow/glow math on buttons
+  and status badges — just recolor. Primary accent: something like indigo/blue (`#5865f2` or
+  `#3b82f6`) instead of brick. A secondary cool tone (cyan/teal) instead of gold. Keep green for
+  resolved, amber for awaiting_approval, red for blocking/failed as the status-specific colors.
+- Do NOT remove `grain-background.tsx`, `silk-shader-background.tsx`, the glow shadows, or the
+  pill button shape. Recolor in place; keep the shapes and effects wholesale.
 - Keep willder's font-mono-for-technical-detail convention (it already separates
   `--font-mono` from `--font-sans`) — use it for event payloads, evidence excerpts, commit
   hashes, timestamps, Collector IDs, exactly as CLAUDE.md's design section calls for.
