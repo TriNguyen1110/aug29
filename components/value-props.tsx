@@ -1,21 +1,20 @@
 import type { ComponentType } from "react";
-import { Search, Quote, UserCheck } from "lucide-react";
+import { Search, Quote, UserCheck, ChevronRight } from "lucide-react";
 import { Pill } from "@/components/ui/pill";
 
-// Above-the-fold value props (mid-task correction): the list page's single paragraph read
-// as too vague — replaced with 3 scannable chip rows, bold label + one clause each, so it
-// reads in ~5 seconds instead of requiring a paragraph read. Still the list page, not a
-// separate marketing surface — sits directly under the title, above the trigger UI.
-// 2026-08-29 pass: icon replaces the plain color dot (real user feedback re: icons + terse
-// copy), clauses trimmed to the part not already implied by the label.
+// Item 21 rewrite (real user feedback): the previous 3 abstract chips ("Investigates, not
+// just alerts" / "Evidence per claim" / "Human approves, always") didn't let a 10-second skim
+// answer 4 concrete questions — what does this actually check, how does Bright Data specifically
+// factor in, how is this different from a dashboard full of logs, and who is it for. Restructured
+// as a "how it works" 3-step flow instead of flat/abstract value props: each step names the
+// concrete mechanism (logs + diff + a live Bright Data check -> one checked fact instead of a
+// guess -> one claim to approve, correlated for you instead of raw data you interpret yourself),
+// so the sequence itself carries the differentiation, not just adjective-y labels. "Who it's
+// for" moved to the eyebrow chip in app/page.tsx since it's an identity statement, not a step.
 
 const ICON_PROPS = { size: 13, strokeWidth: 1.8 } as const;
 
-// 2026-08-29 legibility pass (BOARD.tsv item 10): the 3 rows previously shared one
-// uniform indigo icon color on the same dark shell, which is exactly the "monotone"
-// complaint. Each row now gets its own semantic `dot` tone (indigo/green/amber) so the
-// pill's own background wash + icon color differ per row, not just the label text.
-const PROPS: {
+const STEPS: {
   label: string;
   clause: string;
   icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
@@ -23,22 +22,22 @@ const PROPS: {
   iconColor: string;
 }[] = [
   {
-    label: "Investigates, not just alerts",
-    clause: "real logs, deploys, and live vendor status — not a guess",
+    label: "Checks 3 sources, every time",
+    clause: "your logs, the code/deploy diff, and a live Bright Data check of the vendor",
     icon: Search,
     dot: "active",
     iconColor: "text-accent",
   },
   {
-    label: "Evidence per claim",
-    clause: "every claim shows the literal excerpt it came from",
+    label: `Turns "is it us or them" into a fact`,
+    clause: "a real, live-scraped excerpt cited as evidence — not an assumption",
     icon: Quote,
     dot: "resolved",
     iconColor: "text-status-resolved",
   },
   {
-    label: "Human approves, always",
-    clause: "nothing executes until a person signs off",
+    label: "One claim, yours to approve",
+    clause: "correlated across all three for you — not a dashboard you interpret yourself",
     icon: UserCheck,
     dot: "awaiting",
     iconColor: "text-status-awaiting",
@@ -47,15 +46,20 @@ const PROPS: {
 
 export function ValueProps() {
   return (
-    <ul className="flex flex-col gap-3">
-      {PROPS.map((p) => (
-        <li key={p.label} className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-2.5">
-          <Pill dot={p.dot} icon={<p.icon {...ICON_PROPS} className={p.iconColor} />} className="w-fit shrink-0">
-            <span className="font-semibold text-foreground">{p.label}</span>
-          </Pill>
-          <span className="text-sm text-muted">{p.clause}</span>
+    <ol className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-3">
+      {STEPS.map((s, i) => (
+        <li key={s.label} className="flex flex-1 items-start gap-3">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Pill dot={s.dot} icon={<s.icon {...ICON_PROPS} className={s.iconColor} />} className="w-fit">
+              <span className="font-semibold text-foreground">{s.label}</span>
+            </Pill>
+            <span className="text-sm text-muted">{s.clause}</span>
+          </div>
+          {i < STEPS.length - 1 && (
+            <ChevronRight className="mt-1.5 hidden h-4 w-4 shrink-0 text-muted/40 sm:block" />
+          )}
         </li>
       ))}
-    </ul>
+    </ol>
   );
 }
