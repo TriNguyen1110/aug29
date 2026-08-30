@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { CreditCard, Triangle, GitBranch, BellRing } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pill } from "@/components/ui/pill";
 
 // Real trigger UI (item 05, H+0.9): POSTs a scenario description to the real
 // /api/incidents/trigger route (CONTRACT.md), then navigates to the returned incident's
@@ -23,13 +22,19 @@ import { Pill } from "@/components/ui/pill";
 
 // Item 23 (real user feedback on item 22): the plain inline icon+label text above was too
 // subtle — testers missed the 4 sources entirely on first look because they blended into muted
-// footnote text with no visible boundary. Each source now renders as its own small Pill (the
-// existing components/ui/pill.tsx primitive, `neutral` shell — the same plain bordered chip
-// used elsewhere for the "Seeded" badges, so this doesn't invent new styling) giving it a real
-// background + border distinct from its neighbors. Kept at Pill's default small size (no size
-// prop to bump) and still sat below the unchanged framing sentence, so the row reads as a
-// clearer secondary detail, not a new hero section — still noticeably smaller/quieter than the
-// trigger Card above and item 21's 3-step row further up.
+// footnote text with no visible boundary. Each source rendered as its own small Pill.
+//
+// Item 24 (real user feedback on item 23): the Pills were still too small/subtle to read as
+// real monitoring sources. Reworked to real Card-sized tiles — icon + label with actual padding
+// and a border, at a size that reads as deliberate rather than a footnote — under a small-caps
+// label ("WHAT WOULD BE WATCHING THIS") that leans into monitoring language, matching the
+// existing "TRIGGER A LIVE INVESTIGATION" small-caps convention above the trigger form. The
+// framing sentence is unchanged (still says "in production... would be triggered", never
+// "connected to" or "is monitoring"), and a small honest qualifier ("illustrative — nothing
+// here is live or connected") sits right next to the label so making the tiles bigger doesn't
+// tip into implying real monitoring is happening. Cards use no `glow` prop (unlike the trigger
+// form's `glow="accent"`), so even at this larger size they read as visually secondary to the
+// real trigger action above them.
 const PRODUCTION_TRIGGERS = [
   { icon: CreditCard, label: "Stripe webhooks" },
   { icon: Triangle, label: "Vercel deployment alerts" },
@@ -88,20 +93,23 @@ export function TriggerForm() {
 
 export function TriggerProvenanceNote() {
   return (
-    <div className="flex flex-col gap-2 pt-3">
+    <div className="flex flex-col gap-3 pt-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted">
+          what would be watching this
+        </p>
+        <p className="text-xs text-muted/60">illustrative — nothing here is live or connected</p>
+      </div>
       <p className="text-xs text-muted/70">
         This button is a stand-in for the demo — in production, an investigation like this would
-        be triggered automatically by your alerting, illustrated below.
+        be triggered automatically by your alerting.
       </p>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {PRODUCTION_TRIGGERS.map(({ icon: Icon, label }) => (
-          <Pill
-            key={label}
-            icon={<Icon size={12} strokeWidth={1.8} className="shrink-0 text-muted/70" />}
-            className="text-muted/80"
-          >
-            {label}
-          </Pill>
+          <Card key={label} className="flex flex-col items-center gap-2 px-4 py-5 text-center">
+            <Icon size={22} strokeWidth={1.6} className="shrink-0 text-muted" />
+            <span className="text-sm font-medium text-foreground/80">{label}</span>
+          </Card>
         ))}
       </div>
     </div>

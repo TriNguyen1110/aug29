@@ -51,7 +51,8 @@ export default async function Home() {
       </div>
       <div className="pt-14">
         <TriggerForm />
-        {/* Item 22: small illustrative caption, subordinate to the real form above it. */}
+        {/* Item 22/24: illustrative "what would be watching this" cards, still subordinate
+            to the real trigger form above and honestly labeled as not-live. */}
         <TriggerProvenanceNote />
       </div>
       <div className="pt-16">
