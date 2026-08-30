@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreditCard, Triangle, GitBranch, BellRing } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Pill } from "@/components/ui/pill";
 
 // Real trigger UI (item 05, H+0.9): POSTs a scenario description to the real
 // /api/incidents/trigger route (CONTRACT.md), then navigates to the returned incident's
@@ -18,9 +19,17 @@ import { Button } from "@/components/ui/button";
 // integration: plain lucide-react icon+label pairs standing in for the *kind* of thing that
 // would fire this in a real deployment (a payment provider's webhook, a deploy platform's alert,
 // a CI status check, a generic paging tool), worded as "in production, ..." rather than
-// "connected to ..." so it can't be misread as a live connection. Kept as small muted caption
-// text below the real form, not a bordered/tinted card, so it reads as a footnote and doesn't
-// compete with the Card above it, the hero copy, or item 21's 3-step row.
+// "connected to ..." so it can't be misread as a live connection.
+
+// Item 23 (real user feedback on item 22): the plain inline icon+label text above was too
+// subtle — testers missed the 4 sources entirely on first look because they blended into muted
+// footnote text with no visible boundary. Each source now renders as its own small Pill (the
+// existing components/ui/pill.tsx primitive, `neutral` shell — the same plain bordered chip
+// used elsewhere for the "Seeded" badges, so this doesn't invent new styling) giving it a real
+// background + border distinct from its neighbors. Kept at Pill's default small size (no size
+// prop to bump) and still sat below the unchanged framing sentence, so the row reads as a
+// clearer secondary detail, not a new hero section — still noticeably smaller/quieter than the
+// trigger Card above and item 21's 3-step row further up.
 const PRODUCTION_TRIGGERS = [
   { icon: CreditCard, label: "Stripe webhooks" },
   { icon: Triangle, label: "Vercel deployment alerts" },
@@ -84,12 +93,15 @@ export function TriggerProvenanceNote() {
         This button is a stand-in for the demo — in production, an investigation like this would
         be triggered automatically by your alerting, illustrated below.
       </p>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+      <div className="flex flex-wrap items-center gap-2">
         {PRODUCTION_TRIGGERS.map(({ icon: Icon, label }) => (
-          <span key={label} className="inline-flex items-center gap-1.5 text-xs text-muted/70">
-            <Icon size={12} strokeWidth={1.8} className="shrink-0 text-muted/60" />
+          <Pill
+            key={label}
+            icon={<Icon size={12} strokeWidth={1.8} className="shrink-0 text-muted/70" />}
+            className="text-muted/80"
+          >
             {label}
-          </span>
+          </Pill>
         ))}
       </div>
     </div>
