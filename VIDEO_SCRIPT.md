@@ -16,12 +16,14 @@ it for you, and hands you one solution to approve or deny instead of a wall of l
 
 Switch to the GitHub repo tab.
 
-"It runs on TrueForge, the real harness. Three subagents run as real TrueForge sessions — logs,
-diff, and a live Bright Data check. When it's time to act, TrueForge itself pauses that exact
-tool call and waits for a human decision — verified independently, not faked. OpenAI reasons
-over every call. It's one Next.js app, frontend and backend together, no separate database —
-state lives in memory for this demo. Qodo reviewed this exact PR before it shipped and caught a
-real security gap, which we fixed."
+"It runs on TrueForge, the real harness.
+Three subagents run as real TrueForge sessions — logs, diff, and a live Bright Data check.
+When it's time to act, TrueForge itself pauses that exact tool call and waits for a human
+decision — verified independently, not faked.
+OpenAI reasons over every call.
+It's one Next.js app, frontend and backend together, no separate database — state lives in
+memory for this demo.
+Qodo reviewed this exact PR before it shipped and caught a real security gap, which we fixed."
 
 ## 3. Demo (0:50–2:30)
 
