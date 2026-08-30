@@ -21,15 +21,14 @@ Three subagents run as real TrueForge sessions — logs, diff, and a live Bright
 When it's time to act, TrueForge itself pauses that exact tool call and waits for a human
 decision — verified independently, not faked.
 OpenAI reasons over every call.
-It's one Next.js app, frontend and backend together, no separate database — state lives in
-memory for this demo.
-Qodo reviewed this exact PR before it shipped and caught a real security gap, which we fixed."
+It's one Next.js app, frontend and backend, database in memory.
+Qodo reviewed this exact PR before it shipped and caught a real security gaps"
 
 ## 3. Demo (0:50–2:30)
 
 Switch to the app.
 
-"Here's the incident list. This box triggers a real investigation." Hit **Trigger
+"Here's the incident list. Let's check out this API error spike hitting Stripe." Hit **Trigger
 investigation**.
 
 "It's investigating live." Let the Timeline fill in. "Logs and diff run on demo fixtures today —
